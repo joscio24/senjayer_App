@@ -8,7 +8,6 @@ class TitleText_1 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Text(
       text,
       style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -23,7 +22,6 @@ class TitleText_2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Text(
       text,
       textAlign: TextAlign.center,
@@ -39,7 +37,6 @@ class MenuTexts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Text(
       text,
       textAlign: TextAlign.center,
