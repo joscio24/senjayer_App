@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:senjayer/app/core/theme.dart';
 import '../controllers/contact_controller.dart';
 
 class ListeContactsReseauPage extends StatelessWidget {
@@ -14,49 +15,32 @@ class ListeContactsReseauPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text("Ajouter un contact"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Ajouter un contact", style: TextStyle(fontWeight: FontWeight.bold)),
         content: Form(
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  decoration: InputDecoration(labelText: "Prénom"),
-                  validator: (value) => value!.isEmpty ? "Champ requis" : null,
-                  onSaved: (value) => prenom = value!,
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: "Nom"),
-                  validator: (value) => value!.isEmpty ? "Champ requis" : null,
-                  onSaved: (value) => nom = value!,
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: "Téléphone"),
-                  keyboardType: TextInputType.phone,
-                  validator: (value) => value!.isEmpty ? "Champ requis" : null,
-                  onSaved: (value) => telephone = value!,
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: "Email"),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) =>
-                  value!.isEmpty || !value.contains('@')
-                      ? "Email invalide"
-                      : null,
-                  onSaved: (value) => email = value!,
-                ),
+                _buildTextField("Prénom", (value) => prenom = value!),
+                _buildTextField("Nom", (value) => nom = value!),
+                _buildTextField("Téléphone", (value) => telephone = value!, keyboardType: TextInputType.phone),
+                _buildTextField("Email", (value) => email = value!, keyboardType: TextInputType.emailAddress, validator: (value) {
+                  if (value == null || value.isEmpty || !value.contains('@')) return "Email invalide";
+                  return null;
+                }),
               ],
             ),
           ),
         ),
         actions: [
           TextButton(
-            child: Text("Annuler"),
+            child: const Text("Annuler"),
             onPressed: () => Navigator.pop(context),
           ),
           ElevatedButton(
-            child: Text("Enregistrer"),
+            child: const Text("Enregistrer"),
             onPressed: () async {
               if (_formKey.currentState!.validate()) {
                 _formKey.currentState!.save();
@@ -70,43 +54,82 @@ class ListeContactsReseauPage extends StatelessWidget {
     );
   }
 
+  Widget _buildTextField(String label, Function(String?) onSaved, {
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        keyboardType: keyboardType,
+        validator: validator ?? (value) => value!.isEmpty ? "Champ requis" : null,
+        onSaved: onSaved,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Liste des contacts")),
+      appBar: AppBar(
+        title: const Text("Mes contacts", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: Colors.black,
+      ),
       body: Obx(() {
         final contacts = controller.contacts;
 
         if (contacts.isEmpty) {
-          return const Center(child: Text("Aucun contact disponible."));
+          return const Center(
+            child: Text("Aucun contact disponible.", style: TextStyle(fontSize: 16)),
+          );
         }
 
         return ListView.builder(
+          padding: const EdgeInsets.all(16),
           itemCount: contacts.length,
           itemBuilder: (context, index) {
             final contact = contacts[index];
-            final initials = "${contact['prenom']?[0] ?? ''}${contact['nom']?[0] ?? ''}";
-            return ListTile(
-              contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              leading: CircleAvatar(
-                backgroundColor: Colors.blueAccent,
-                child: Text(
-                  initials.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+            final initials = "${contact['prenom']?[0] ?? ''}${contact['nom']?[0] ?? ''}".toUpperCase();
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                leading: CircleAvatar(
+                  backgroundColor: appTheme.appSlightViolet,
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
-              title: Text(
-                "${contact['prenom']} ${contact['nom']}",
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              subtitle: Text(
-                "${contact['email']} • ${contact['telephone']}",
-                style: TextStyle(color: Colors.grey[700]),
+                title: Text(
+                  "${contact['prenom']} ${contact['nom']}",
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+                subtitle: Text(
+                  "${contact['email']} • ${contact['telephone']}",
+                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                ),
               ),
             );
           },
@@ -114,7 +137,8 @@ class ListeContactsReseauPage extends StatelessWidget {
       }),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddContactDialog(context),
-        child: const Icon(Icons.add),
+        backgroundColor: appTheme.appSlightViolet,
+        child: const Icon(Icons.add, color: Colors.white),
         tooltip: "Ajouter un contact",
       ),
     );

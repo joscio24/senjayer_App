@@ -9,8 +9,8 @@ class ApiRoutes {
   static const String resetPassword = "$baseUrl/auth/reset-password";
 
   // User
-  static const String getUserProfile = "$baseUrl/user/profile";
-  static const String updateUserProfile = "$baseUrl/user/update";
+  static const String getUserProfile = "$baseUrl/v1/users";
+  static const String updateUserProfile = "$baseUrl/v1/users";
 
   // Products
   static const String getProducts = "$baseUrl/products";

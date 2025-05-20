@@ -244,7 +244,7 @@ class _EventsViewState extends State<EventsView> {
       ),
       bottomNavigationBar: buildBottomNavigation(),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => {Get.toNamed("/user_events_create")}, // Icon for the FAB
+        onPressed: () => {Get.toNamed("/user_events_packs")}, // Icon for the FAB
         tooltip: 'Add Event',
         child: Icon(Icons.add), // Tooltip when hovering or long pressing
       ),

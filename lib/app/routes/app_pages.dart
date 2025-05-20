@@ -15,10 +15,20 @@ import 'package:senjayer/app/modules/invitations/views/invitation_details.dart';
 import 'package:senjayer/app/modules/invitations/views/invitation_view.dart';
 import 'package:senjayer/app/modules/onboarding/bindings/onboarding_binding.dart';
 import 'package:senjayer/app/modules/onboarding/views/onboarding_view.dart';
+import 'package:senjayer/app/modules/packagePurchase/views/package_selection_page.dart';
+import 'package:senjayer/app/modules/search/views/searchPage.dart';
 import 'package:senjayer/app/modules/splash/view/splash_view.dart';
 import 'package:senjayer/app/modules/success_reg/views/success_reg_view.dart';
 import 'package:senjayer/app/modules/welcome_page/views/welcome_page_view.dart';
 import 'package:senjayer/app/routes/app_routes.dart';
+import '../modules/packagePurchase/views/package_payment_page.dart';
+import '../modules/profile/bindings/edit_profile_binding.dart';
+import '../modules/profile/views/about_page.dart';
+import '../modules/profile/views/delete_account_page.dart';
+import '../modules/profile/views/edit_profile_page.dart';
+import '../modules/profile/views/faq_page.dart';
+import '../modules/profile/views/notifications_page.dart';
+import '../modules/profile/views/parametres_page.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
@@ -193,6 +203,72 @@ class AppPages {
       // binding: HomeBinding(),
       transition: Transition.cupertino, // Smooth fade-in transition
       transitionDuration: Duration(milliseconds: 800),
+    ),
+
+
+    GetPage(
+      name: AppRoutes.USER_EVENTS_PACKS_PAYMENT,
+      page: () => PaymentPage(),
+
+      // binding: HomeBinding(),
+      transition: Transition.cupertino, // Smooth fade-in transition
+      transitionDuration: Duration(milliseconds: 800),
+    ),
+
+    GetPage(
+      name: AppRoutes.USER_SEARCH_PAGE,
+      page: () => SearchPage(),
+
+      // binding: HomeBinding(),
+      transition: Transition.cupertino, // Smooth fade-in transition
+      transitionDuration: Duration(milliseconds: 800),
+    ),
+
+    GetPage(
+      name: AppRoutes.USER_EVENTS_PACKS,
+      page: () => PackageSelectionPage(),
+
+      // binding: HomeBinding(),
+      transition: Transition.cupertino, // Smooth fade-in transition
+      transitionDuration: Duration(milliseconds: 800),
+    ),
+
+    GetPage(
+      name: AppRoutes.PARAMETRES,
+      page: () => ParametresPage(),
+      transition: Transition.cupertino,
+      transitionDuration: Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: AppRoutes.EDIT_PROFILE,
+      page: () => EditProfilePage(),
+      binding: EditProfileBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: AppRoutes.NOTIFICATIONS,
+      page: () => NotificationsPage(),
+      transition: Transition.cupertino,
+      transitionDuration: Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: AppRoutes.FAQ,
+      page: () => FAQPage(),
+      transition: Transition.cupertino,
+      transitionDuration: Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: AppRoutes.ABOUT,
+      page: () => AboutPage(),
+      transition: Transition.cupertino,
+      transitionDuration: Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: AppRoutes.DELETE_ACCOUNT,
+      page: () => DeleteAccountPage(),
+      transition: Transition.cupertino,
+      transitionDuration: Duration(milliseconds: 300),
     ),
   ];
 }

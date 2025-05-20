@@ -332,7 +332,7 @@ class _DashboardViewState extends State {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                title: Text("Compte"),
+                                title: Text("Compte", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                                 content: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -428,16 +428,16 @@ class _DashboardViewState extends State {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           InkWell(
-                            onTap: () => {},
+                            onTap: () => Get.toNamed('/user_search'),
                             child: Icon(
                               Icons.search,
                               color: Colors.grey,
                               size: 30,
                             ),
                           ),
-                          SizedBox(width: 10),
+                          SizedBox(width: 20),
                           InkWell(
-                            onTap: () => {},
+                            onTap: () => Get.toNamed("/notifications"),
                             child: Stack(
                               alignment: Alignment.topRight,
                               children: [
@@ -481,45 +481,41 @@ class _DashboardViewState extends State {
                 SizedBox(height: 40),
 
                 Padding(
-                  padding: const EdgeInsets.all(0.0),
+                  padding: EdgeInsets.symmetric(horizontal: 0), // Small padding, no extra spacing
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // First text widget
-                      Expanded(
+                      Flexible(
+                        fit: FlexFit.loose,
                         child: Text(
-                          dateParts[0],
+                          dateParts[0], // e.g., "Monday"
                           style: TextStyle(
-                            fontSize: 23,
+                            fontSize: 28,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
                           ),
-                          overflow:
-                              TextOverflow
-                                  .ellipsis, // Ensures overflow handling for the first text
-                          maxLines: 1, // Limit to one line
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
-                      SizedBox(width: 1),
-                      // Second text widget
-                      Expanded(
+                      SizedBox(width: 6), // Small spacing between texts
+                      Flexible(
+                        fit: FlexFit.loose,
                         child: Text(
-                          "${dayParts[0]} ${dayParts[1]} ${dayParts[2]}",
-                          softWrap: true,
-
+                          "${dayParts[0]} ${dayParts[1]} ${dayParts[2]}", // e.g., "01 January 2025"
                           style: TextStyle(
-                            fontSize: 22,
+                            fontSize: 28,
                             fontWeight: FontWeight.w600,
                             color: Colors.purple,
                           ),
+                          overflow: TextOverflow.ellipsis,
                           maxLines: 1,
-                          // overflow: TextOverflow.ellipsis, // Handles overflow
-                          // Ensure the text is contained to a single line
                         ),
                       ),
                     ],
                   ),
                 ),
+
                 SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -708,60 +704,78 @@ class _DashboardViewState extends State {
                       ),
                     ),
 
-                    Container(
-                      padding: EdgeInsets.all(16),
-                      width: MediaQuery.of(context).size.width * 0.42,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(width: 1, color: Colors.black26),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 15,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Mon profil",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                    GestureDetector(
+                      onTap: () => {Get.toNamed("/parametres")},
+                      child: Container(
+                        padding: EdgeInsets.all(16),
+                        width: MediaQuery.of(context).size.width * 0.42,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(width: 1, color: Colors.black26),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 15,
+                              spreadRadius: 5,
                             ),
-                            // , // Ensures text doesn't get cut off
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            "Voir mon profil",
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w500,
-                              color: const Color.fromARGB(255, 20, 20, 20),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Mon profil",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                              // , // Ensures text doesn't get cut off
                             ),
-                            softWrap: true,
-                            overflow: TextOverflow.visible,
-                          ),
-                          SizedBox(height: 15),
-                          Container(
-                            // Ensures full width
-                            child: Align(
-                              alignment:
-                                  Alignment
-                                      .centerRight, // Moves the image to the right
-                              child: Image.asset(
-                                "assets/user_icon.png", // Replace with your asset path
-                                width: 60,
+                            SizedBox(height: 5),
+                            Text(
+                              "Voir mon profil",
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w500,
+                                color: const Color.fromARGB(255, 20, 20, 20),
+                              ),
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
+                            ),
+                            SizedBox(height: 15),
+                            Container(
+                              // Ensures full width
+                              child: Align(
+                                alignment:
+                                    Alignment
+                                        .centerRight, // Moves the image to the right
+                                child: Image.asset(
+                                  "assets/user_icon.png", // Replace with your asset path
+                                  width: 60,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
+                  ],
+                ),
+
+
+
+                SizedBox(height: 20),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // const Padding(
+                    //   padding: EdgeInsets.symmetric(horizontal: 16),
+                    //   child: Text("Événements", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    // ),
+                    _buildEventActions(),
+                    SizedBox(height: 20),
                   ],
                 ),
 
@@ -784,7 +798,7 @@ class _DashboardViewState extends State {
                         Container(
                           height: 4,
                           width:
-                              MediaQuery.of(context).size.width *
+                          MediaQuery.of(context).size.width *
                               0.5, // Adjust thickness of the underline
                           color: appTheme.appViolet,
                           // padding: EdgeInsets.all(1), // Underline color
@@ -838,7 +852,7 @@ class AppBarSection extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return PreferredSize(
-      preferredSize: Size.fromHeight(kToolbarHeight2),
+      preferredSize: Size.fromHeight(kToolbarHeight),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16),
         margin: EdgeInsets.only(top: 20),
@@ -884,10 +898,10 @@ class AppBarSection extends StatelessWidget implements PreferredSizeWidget {
               Row(
                 children: [
                   InkWell(
-                    onTap: () => {},
+                    onTap: () => Get.toNamed('/user_search'),
                     child: Icon(Icons.search, color: Colors.grey, size: 28),
                   ),
-                  SizedBox(width: 10),
+                  SizedBox(width: 20),
                   InkWell(
                     onTap: () => {},
                     child: Stack(
@@ -995,5 +1009,99 @@ Widget _buildNavItem(String iconPath, String label) {
         ),
       ),
     ],
+  );
+}
+
+Widget _buildEventActions() {
+  final items = [
+    {
+      'label': 'Créer',
+      'icon': Icons.add_circle,
+      'color': Colors.orange,
+      'route': '/user_events_packs',
+    },
+    // {
+    //   'label': 'Stats',
+    //   'icon': Icons.pie_chart,
+    //   'color': Colors.redAccent,
+    //   'route': '/stats',
+    // },
+    {
+      'label': 'Contrôle',
+      'icon': Icons.verified_user,
+      'color': Colors.teal,
+      'route': '/control',
+    },
+    {
+      'label': 'Scan',
+      'icon': Icons.qr_code_scanner,
+      'color': Colors.indigo,
+      'route': '/scan',
+    },
+    // {
+    //   'label': 'Retrait',
+    //   'icon': Icons.attach_money,
+    //   'color': Colors.green,
+    //   'route': '/retrait',
+    // },
+  ];
+
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 0),
+    child: GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 0.85,
+      children: items.map((item) {
+        return GestureDetector(
+
+          onTap: () => Get.toNamed(item['route'] as String),
+          child: Container(
+
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+
+              border: Border.all(color: Colors.grey.shade200),
+              // boxShadow: [
+              //   BoxShadow(
+              //     color: Colors.black.withOpacity(0.02),
+              //     blurRadius: 6,
+              //     offset: const Offset(0, 2),
+              //   ),
+              // ],
+
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: (item['color'] as Color).withOpacity(0.1),
+                  child: Icon(item['icon'] as IconData, color: item['color'] as Color),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  item['label'] as String,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    ),
   );
 }

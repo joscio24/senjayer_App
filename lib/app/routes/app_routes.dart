@@ -16,9 +16,18 @@ abstract class AppRoutes {
   static const INVITATION_DETAILS = "/invitation_details";
   static const INVITATION_DETAIL_CARTE = '/invitation_detail_carte';
   static const USER_EVENTS = '/user_events';
+  static const USER_SEARCH_PAGE = '/user_search';
+  static const USER_EVENTS_PACKS = '/user_events_packs';
+  static const USER_EVENTS_PACKS_PAYMENT = '/user_events_packs_payment';
   static const USER_EVENTS_details = '/user_events_details';
   static const USER_EVENTS_CREATE = '/user_events_create';
   static const USER_EVENTS_INVITECONTACT = '/inviteContact';
   static const USER_CONTACT_LIST = '/contactList';
+  static const PARAMETRES = '/parametres';
+  static const EDIT_PROFILE = '/edit-profile';
+  static const NOTIFICATIONS = '/notifications';
+  static const FAQ = '/faq';
+  static const ABOUT = '/about';
+  static const DELETE_ACCOUNT = '/delete-account';
   // user_events
 }

@@ -357,6 +357,37 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>?> getUserProfileData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+    // print("Fetching events from: ${ApiRoutes.getEventsDetails}");
+
+    try {
+      Response response = await _dio.get(
+        ApiRoutes.getUserProfile,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      // print("API Response: ${response.data}");
+
+      if (response.statusCode == 200) {
+        return {
+          "success": true,
+          "message": "Events retrieved successfully",
+          "categories": response.data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": response.data["message"] ?? "Unknown error",
+        };
+      }
+    } catch (e) {
+      print("Error: $e"); // Debugging error
+      return {"success": false, "message": "Failed to retrieve events: $e"};
+    }
+  }
+
   // create events
   Future<Map<String, dynamic>?> createEvent({
     required String name,

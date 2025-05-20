@@ -4,18 +4,21 @@ import 'package:flutter/widgets.dart';
 class MainButtons extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
-  const MainButtons({super.key, required this.text, required this.onPressed});
+  final Icon? icon;
+  const MainButtons({super.key, required this.text, required this.onPressed, this.icon});
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
+    return ElevatedButton.icon(
+      icon:  icon ?? null,
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color.fromARGB(255, 58, 0, 120),
         minimumSize: Size(double.infinity, 50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
       ),
       onPressed: onPressed,
-      child: Text(text, style: TextStyle(color: Colors.white)),
+      label: Text(text, style: TextStyle(color: Colors.white)),
+
     );
   }
 }

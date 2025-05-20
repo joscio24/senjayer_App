@@ -257,7 +257,7 @@ class _EventsViewState extends State<EventsViewInvites> {
       ),
       bottomNavigationBar: buildBottomNavigation(),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => {Get.toNamed("/user_events_create")},
+        onPressed: () => {Get.toNamed("/user_events_packs")},
         tooltip: 'Add Event',
         child: Icon(Icons.add),
       ),

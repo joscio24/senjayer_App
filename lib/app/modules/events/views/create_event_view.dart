@@ -265,7 +265,7 @@ class _CreateEventPageState extends State<CreateEventView> {
             children: [
               ListTile(
                 leading: Icon(Icons.image),
-                title: Text('Select Image from Gallery'),
+                title: Text('Select Image from Gallery', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 onTap: () async {
                   // Pick image from gallery
                   final pickedFile = await _picker.pickImage(
@@ -392,7 +392,43 @@ class _CreateEventPageState extends State<CreateEventView> {
                 hintText: 'Concert hola worlds',
               ),
               SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: const Color.fromARGB(255, 109, 109, 109),
+                    width: 1,
+                  ), // Border color and width
+                  borderRadius: BorderRadius.circular(30), // Rounded corners
+                ),
+                child: DropdownButton<int>(
+                  value: selectedCategoryId,
+                  onChanged: (int? newCategoryId) {
+                    print("Selected Category id: $selectedCategoryId");
+                    setState(() {
+                      selectedCategoryId = newCategoryId;
+                    });
+                  },
+                  hint: Text(
+                    'Sélectionnez une catégorie',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  isExpanded: true,
+                  underline: SizedBox(),
+                  items:
+                  categories.map((category) {
+                    return DropdownMenuItem<int>(
+                      value: category["id"], // Store the ID as value
+                      child: Text(
+                        category["name"], // Display the category name
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
 
+              SizedBox(height: 16),
               // Description Input
               CustomTextField(
                 labelText: 'Description',
@@ -403,7 +439,7 @@ class _CreateEventPageState extends State<CreateEventView> {
 
               // Address Input
               CustomTextField(
-                labelText: "Lieu de l'évenement",
+                labelText: "Nom du lieu de l'évenement",
                 controller: addressController,
                 hintText: 'Enter event address',
               ),
@@ -555,43 +591,7 @@ class _CreateEventPageState extends State<CreateEventView> {
               ),
               SizedBox(height: 16),
               // Category Dropdown
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: const Color.fromARGB(255, 109, 109, 109),
-                    width: 1,
-                  ), // Border color and width
-                  borderRadius: BorderRadius.circular(30), // Rounded corners
-                ),
-                child: DropdownButton<int>(
-                  value: selectedCategoryId,
-                  onChanged: (int? newCategoryId) {
-                    print(selectedCategoryId);
-                    setState(() {
-                      selectedCategoryId = newCategoryId;
-                    });
-                  },
-                  hint: Text(
-                    'Sélectionnez une catégorie',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                  isExpanded: true,
-                  underline: SizedBox(),
-                  items:
-                      categories.map((category) {
-                        return DropdownMenuItem<int>(
-                          value: category["id"], // Store the ID as value
-                          child: Text(
-                            category["name"], // Display the category name
-                            style: TextStyle(fontSize: 18),
-                          ),
-                        );
-                      }).toList(),
-                ),
-              ),
 
-              SizedBox(height: 16),
 
               Row(children: [Text("Lieu de l'évenement")]),
               // Google Map for location selection
