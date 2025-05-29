@@ -71,7 +71,7 @@ class _DashboardViewState extends State {
   Future<void> _loadUserData() async {
     var userData = await apiService.getUserData();
     if (userData != null) {
-      print(userData["user"]["firstName"]?.toString() ?? "Unknown User");
+      // print(userData["user"]["firstName"]?.toString() ?? "Unknown User");
       setState(() {
         userName = userData["user"]["firstName"]?.toString() ?? "_unknown";
         email = userData["user"]["firstName"]?.toString() ?? "...";
@@ -135,7 +135,7 @@ class _DashboardViewState extends State {
             };
           }).toList();
 
-      print("Invitations: $invitations");
+      // print("Invitations: $invitations");
     });
   }
 
@@ -193,7 +193,7 @@ class _DashboardViewState extends State {
             };
           }).toList();
 
-      print("Invitations: $invitations");
+      // print("Invitations: $invitations");
     });
   }
 
@@ -204,20 +204,52 @@ class _DashboardViewState extends State {
     });
   }
 
-  Future<int> _getTotalInvitationCount() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'contacts_event.db');
-    final database = await openDatabase(path);
+  // Future<int> _getTotalInvitationCount() async {
+  //   final dbPath = await getDatabasesPath();
+  //   final path = join(dbPath, 'contacts_event.db');
+  //   final database = await openDatabase(path);
 
-    // Query the database to get the total count of invitations
-    final List<Map<String, dynamic>> totalInvitations = await database.rawQuery('''
-    SELECT COUNT(*) as total_invites
-    FROM invitations
+  //   // Query the database to get the total count of invitations
+  //   final List<Map<String, dynamic>> totalInvitations = await database.rawQuery('''
+  //   SELECT COUNT(*) as total_invites
+  //   FROM invitations
+  // ''');
+
+  //   // Return the total count
+  //   return totalInvitations.isNotEmpty ? totalInvitations.first['total_invites'] ?? 0 : 0;
+  // }
+
+  Future<int> _getTotalInvitationCount() async {
+  final dbPath = await getDatabasesPath();
+  final path = join(dbPath, 'contacts_event.db');
+
+  // Check if the database file exists
+  final dbExists = await databaseExists(path);
+  if (!dbExists) {
+    return 0; // Skip fetch if DB doesn't exist
+  }
+
+  final database = await openDatabase(path);
+
+  // Check if 'invitations' table exists
+  final tableCheck = await database.rawQuery('''
+    SELECT name FROM sqlite_master WHERE type='table' AND name='invitations';
   ''');
 
-    // Return the total count
-    return totalInvitations.isNotEmpty ? totalInvitations.first['total_invites'] ?? 0 : 0;
+  if (tableCheck.isEmpty) {
+    return 0; // Skip fetch if table doesn't exist
   }
+
+  // Table exists, run the actual count query
+  final totalInvitations = await database.rawQuery('''
+    SELECT COUNT(*) as total_invites FROM invitations;
+  ''');
+
+  return totalInvitations.isNotEmpty
+      ? (totalInvitations.first['total_invites'] as int? ?? 0)
+      : 0;
+}
+
 
   // Format date from API (e.g., "2024-04-01T17:00:00.000000Z" → "01 April 2024, 17:00")
   String _formatDate(String? startDateStr, String? endDateStr) {

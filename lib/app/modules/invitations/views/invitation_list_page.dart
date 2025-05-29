@@ -34,7 +34,8 @@ class _EventsViewState extends State<EventsViewInvites> {
     // 1. Fetch events from API
     var eventsResponse = await apiService.getUsersEventsData();
     if (eventsResponse == null || !(eventsResponse["success"] as bool)) {
-      print("Failed to load events: ${eventsResponse?["message"]}");
+      // print("Failed to load events: ${eventsResponse?["message"]}");
+
       return;
     }
 
@@ -86,7 +87,7 @@ class _EventsViewState extends State<EventsViewInvites> {
       }).toList();
     });
 
-    print("Filtered Events with Invitations: $filteredEvents");
+    // print("Filtered Events with Invitations: $filteredEvents");
   }
 
   String _formatDate(String? startDateStr, String? endDateStr) {

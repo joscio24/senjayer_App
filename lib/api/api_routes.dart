@@ -22,7 +22,7 @@ class ApiRoutes {
   static const String cancelOrder = "$baseUrl/orders/{id}/cancel";
 
   // Example API Routes from OpenAPI Spec
-  static const String getCategories = "$baseUrl/v1/categories";
+  static const String getCategories = "$baseUrl/v1/categories-by-type?type=évènement";
   static const String getCategoryDetails = "$baseUrl/v1/categories/{id}";
   static const String createCategory = "$baseUrl/v1/categories/create";
 
@@ -33,5 +33,5 @@ class ApiRoutes {
   // eventes
   static const String getEventsDetails = "$baseUrl/v1/agent/liste-event";
   static const String getEvents = "$baseUrl/v1/events";
-  static const String createEvent = "$baseUrl/v1/events";
+  static const String createEvent = "$baseUrl/v1/events/";
 }

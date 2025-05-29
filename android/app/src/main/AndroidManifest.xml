@@ -43,7 +43,7 @@
             android:value="2" />
             <meta-data
     android:name="com.google.android.geo.API_KEY"
-    android:value="AIzaSyAWN-oruHPWWg8E6cURQKmbScoBBAy2Sa8"/>
+    android:value="AIzaSyBqd28Yhkv6wfyxXdR6MfY03RqlKe30E7E"/>
     </application>
      <uses-feature
             android:name="android.hardware.location.gps"

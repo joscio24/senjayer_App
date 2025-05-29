@@ -32,7 +32,7 @@ class _InvitationViewState extends State<InvitationView> {
     var eventsResponse = await apiService.getEventsData();
 
     if (eventsResponse == null || !(eventsResponse["success"] as bool)) {
-      print("Failed to load events: ${eventsResponse?["message"]}");
+      // print("Failed to load events: ${eventsResponse?["message"]}");
       return;
     }
 
@@ -78,7 +78,7 @@ class _InvitationViewState extends State<InvitationView> {
             };
           }).toList();
 
-      print("Invitations: $invitations");
+      // print("Invitations: $invitations");
     });
   }
 

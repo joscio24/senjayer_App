@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart'; // For image picking
 import 'package:google_maps_flutter/google_maps_flutter.dart'; // Google Map
 import 'package:intl/intl.dart';
 import 'package:senjayer/api/api_services.dart';
+import 'package:senjayer/app/modules/maps/views/mapselector.dart';
 import 'package:senjayer/app/services/loaderServices.dart';
 import 'package:senjayer/widgets/custom_button.dart';
 import 'package:senjayer/widgets/custom_textfield.dart';
@@ -190,7 +191,7 @@ class _CreateEventPageState extends State<CreateEventView> {
       addressLongitude: longitude!,
       addressLatitude: latitude!,
       imageUrl: imageUrl!, // Pass the file instead of a string
-      categoryId: selectedCategoryId!,
+      categoryId: selectedCategoryId.toString(),
       private: 1, // Set default private value (adjust as needed)
       userId: userId, // Use stored user ID
       startDate: startDate!.toIso8601String(),
@@ -265,7 +266,10 @@ class _CreateEventPageState extends State<CreateEventView> {
             children: [
               ListTile(
                 leading: Icon(Icons.image),
-                title: Text('Select Image from Gallery', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                title: Text(
+                  'Select Image from Gallery',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
                 onTap: () async {
                   // Pick image from gallery
                   final pickedFile = await _picker.pickImage(
@@ -302,18 +306,34 @@ class _CreateEventPageState extends State<CreateEventView> {
     // }
   }
 
+  LatLng? selectedLocation;
   // Function to handle location selection on the map
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
   }
 
   // Function to handle tapping on the map to select the location
-  void _onTap(LatLng latLng) {
-    setState(() {
-      _location = latLng;
-      latitude = latLng.latitude;
-      longitude = latLng.longitude;
-    });
+  void _openMapSelector() async {
+    LatLng? pickedLocation = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => MapPickerPage()),
+    );
+
+    
+      selectedLocation = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => MapPickerPage()),
+    );
+    
+
+    if (pickedLocation != null) {
+      setState(() {
+        latitude = pickedLocation.latitude;
+        longitude = pickedLocation.longitude;
+      });
+
+      print("Lat: $latitude, Lng: $longitude");
+    }
   }
 
   // Function to handle form submission
@@ -416,15 +436,15 @@ class _CreateEventPageState extends State<CreateEventView> {
                   isExpanded: true,
                   underline: SizedBox(),
                   items:
-                  categories.map((category) {
-                    return DropdownMenuItem<int>(
-                      value: category["id"], // Store the ID as value
-                      child: Text(
-                        category["name"], // Display the category name
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    );
-                  }).toList(),
+                      categories.map((category) {
+                        return DropdownMenuItem<int>(
+                          value: category["id"], // Store the ID as value
+                          child: Text(
+                            category["name"], // Display the category name
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        );
+                      }).toList(),
                 ),
               ),
 
@@ -585,36 +605,76 @@ class _CreateEventPageState extends State<CreateEventView> {
                 inputType: TextInputType.number,
               ),
               SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(children: [Text("Catégorie")]),
-              ),
+
               SizedBox(height: 16),
+
               // Category Dropdown
-
-
               Row(children: [Text("Lieu de l'évenement")]),
+
               // Google Map for location selection
-              SizedBox(
-                height: 300,
-                child: GoogleMap(
-                  onMapCreated: _onMapCreated,
-                  initialCameraPosition: CameraPosition(
-                    target: _initialLocation,
-                    zoom: 14.0,
-                  ),
-                  mapType: MapType.normal,
-                  liteModeEnabled: false,
-                  markers: {
-                    Marker(
-                      markerId: MarkerId('event_location'),
-                      position: _location,
-                      infoWindow: InfoWindow(title: 'Event Location'),
-                    ),
-                  },
-                  onTap: _onTap, // Allow user to select location on map
-                ),
+              // SizedBox(
+              //   height: 300,
+              //   child: GoogleMap(
+              //     onMapCreated: _onMapCreated,
+              //     initialCameraPosition: CameraPosition(
+              //       target: _initialLocation,
+              //       zoom: 14.0,
+              //     ),
+              //     mapType: MapType.normal,
+              //     liteModeEnabled: false,
+              //     markers: {
+              //       Marker(
+              //         markerId: MarkerId('event_location'),
+              //         position: _location,
+              //         infoWindow: InfoWindow(title: 'Event Location'),
+              //       ),
+              //     },
+              //     onTap: _onTap, // Allow user to select location on map
+              //   ),
+              // ),
+              ListTile(
+                leading: Icon(Icons.map),
+                title: Text("Choisir un emplacement sur la carte"),
+                subtitle:
+                    latitude != null
+                        ? Text("Lat: $latitude, Lng: $longitude")
+                        : null,
+                onTap: _openMapSelector,
               ),
+
+
+              GestureDetector(
+            onTap: _openMapSelector,
+            child: SizedBox(
+              height: 200,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: selectedLocation != null
+                    ? GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: selectedLocation!,
+                          zoom: 15,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: MarkerId('selected_location'),
+                            position: selectedLocation!,
+                          ),
+                        },
+                        onMapCreated: (_) {},
+                        myLocationEnabled: false,
+                        zoomControlsEnabled: false,
+                        liteModeEnabled: true, // Important for performance
+                      )
+                    : Container(
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: Text("Aucun emplacement sélectionné.\nAppuyez pour choisir.", textAlign: TextAlign.center),
+                        ),
+                      ),
+              ),
+            ),
+          ),
               SizedBox(height: 16),
 
               SizedBox(height: 16),

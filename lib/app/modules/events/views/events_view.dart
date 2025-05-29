@@ -35,7 +35,7 @@ class _EventsViewState extends State<EventsView> {
     var eventsResponse = await apiService.getUsersEventsData();
 
     if (eventsResponse == null || !(eventsResponse["success"] as bool)) {
-      print("Failed to load events: ${eventsResponse?["message"]}");
+      // print("Failed to load events: ${eventsResponse?["message"]}");
       return;
     }
 
@@ -87,7 +87,7 @@ class _EventsViewState extends State<EventsView> {
             };
           }).toList();
 
-      print("Invitations: $eventList");
+      // print("Invitations: $eventList");
     });
   }
 

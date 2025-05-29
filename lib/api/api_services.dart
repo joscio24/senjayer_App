@@ -396,7 +396,7 @@ class ApiService {
     required double addressLongitude,
     required double addressLatitude,
     required File imageUrl,
-    required int categoryId,
+    required String categoryId, // If your backend expects int, change to int
     required int private,
     required int userId,
     required String startDate,
@@ -411,7 +411,6 @@ class ApiService {
     String? token = prefs.getString("token");
 
     try {
-      // Debugging: Print data before sending
       print('Creating Event with data: $name, $description, $eventAddress');
 
       String fileName = imageUrl.path.split('/').last;
@@ -419,27 +418,30 @@ class ApiService {
         imageUrl.path,
         filename: fileName,
       );
-      // Send the POST request
+
+      FormData formData = FormData.fromMap({
+        "name": name,
+        "description": description,
+        "event_address": eventAddress,
+        "address_longitude": addressLongitude,
+        "address_latitude": addressLatitude,
+        "category_id":
+            categoryId, // or int.parse(categoryId) if backend needs int
+        "image_url": multipartFile,
+        "private": private,
+        "user_id": userId,
+        "start_date": startDate,
+        "end_date": endDate,
+        "nb_place": nbPlace,
+        "start_ticket": startTicket,
+        "end_ticket": endTicket,
+        "status": status,
+        "guest": guest,
+      });
+
       Response response = await _dio.post(
-        ApiRoutes.createEvent, // Replace with your actual API endpoint
-        data: {
-          "name": name,
-          "description": description,
-          "event_address": eventAddress,
-          "address_longitude": addressLongitude,
-          "address_latitude": addressLatitude,
-          "category_id": categoryId,
-          "image_url": multipartFile,
-          "private": private,
-          "user_id": userId,
-          "start_date": startDate,
-          "end_date": endDate,
-          "nb_place": nbPlace,
-          "start_ticket": startTicket,
-          "end_ticket": endTicket,
-          "status": status,
-          "guest": guest,
-        },
+        ApiRoutes.createEvent,
+        data: formData,
         options: Options(
           headers: {
             "Content-Type": "multipart/form-data",
@@ -448,11 +450,9 @@ class ApiService {
         ),
       );
 
-      // Log response for debugging
       print("Status Code: ${response.statusCode}");
       print("Response Body: ${response.data}");
 
-      // Check the status code
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {
           "success": true,
@@ -468,12 +468,9 @@ class ApiService {
         };
       }
     } catch (e) {
-      // Handle DioException specifically
       if (e is DioException) {
-        // Log response if available
         if (e.response != null) {
           print("Dio Exception Response: ${e.response?.data}");
-
           return {
             "success": false,
             "message":
