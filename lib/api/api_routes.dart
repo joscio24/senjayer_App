@@ -32,6 +32,14 @@ class ApiRoutes {
 
   // eventes
   static const String getEventsDetails = "$baseUrl/v1/agent/liste-event";
-  static const String getEvents = "$baseUrl/v1/events";
+  static const String getEvents = "$baseUrl/v1/events-list/promotor?private=1";
+  // static const String getEvents = "$baseUrl/v1/events";
   static const String createEvent = "$baseUrl/v1/events/";
+  // static const String createEvent = "$baseUrl/v1/events/";
+
+
+  static const String getPackages = "$baseUrl/v1/packages";
+  static const String subscribtions = "$baseUrl/v1/subscriptions"; 
+  // (  "user_id" , "package_id", "event_limit") 
+  static const String transactions  = "$baseUrl/v1/transactions";
 }

@@ -388,7 +388,6 @@ class ApiService {
     }
   }
 
-  // create events
   Future<Map<String, dynamic>?> createEvent({
     required String name,
     required String description,
@@ -396,7 +395,7 @@ class ApiService {
     required double addressLongitude,
     required double addressLatitude,
     required File imageUrl,
-    required String categoryId, // If your backend expects int, change to int
+    required String categoryId,
     required int private,
     required int userId,
     required String startDate,
@@ -411,47 +410,52 @@ class ApiService {
     String? token = prefs.getString("token");
 
     try {
-      print('Creating Event with data: $name, $description, $eventAddress');
-
       String fileName = imageUrl.path.split('/').last;
-      MultipartFile multipartFile = await MultipartFile.fromFile(
-        imageUrl.path,
-        filename: fileName,
+
+      FormData formData = FormData();
+
+      // Ajouter les champs classiques
+      formData.fields.addAll([
+        MapEntry('name', name),
+        MapEntry('description', description),
+        MapEntry('event_address', eventAddress),
+        MapEntry('address_longitude', addressLongitude.toString()),
+        MapEntry('address_latitude', addressLatitude.toString()),
+        MapEntry('category_id', categoryId),
+        MapEntry('private', private.toString()),
+        MapEntry('user_id', userId.toString()),
+        MapEntry('start_date', startDate),
+        MapEntry('end_date', endDate),
+        MapEntry('nb_place', nbPlace.toString()),
+        MapEntry('start_ticket', startTicket),
+        MapEntry('end_ticket', endTicket),
+        MapEntry('status', status.toString()),
+      ]);
+
+      // Ajouter le fichier image
+      formData.files.add(
+        MapEntry(
+          'image_url',
+          await MultipartFile.fromFile(imageUrl.path, filename: fileName),
+        ),
       );
 
-      FormData formData = FormData.fromMap({
-        "name": name,
-        "description": description,
-        "event_address": eventAddress,
-        "address_longitude": addressLongitude,
-        "address_latitude": addressLatitude,
-        "category_id":
-            categoryId, // or int.parse(categoryId) if backend needs int
-        "image_url": multipartFile,
-        "private": private,
-        "user_id": userId,
-        "start_date": startDate,
-        "end_date": endDate,
-        "nb_place": nbPlace,
-        "start_ticket": startTicket,
-        "end_ticket": endTicket,
-        "status": status,
-        "guest": guest,
-      });
+      // Ajouter les invités (array -> guest[0], guest[1], etc.)
+      for (int i = 0; i < guest.length; i++) {
+        formData.fields.add(MapEntry('guest[$i]', guest[i]));
+      }
 
+      // Envoyer la requête
       Response response = await _dio.post(
         ApiRoutes.createEvent,
         data: formData,
         options: Options(
           headers: {
             "Content-Type": "multipart/form-data",
-            'Authorization': 'Bearer $token',
+            "Authorization": "Bearer $token",
           },
         ),
       );
-
-      print("Status Code: ${response.statusCode}");
-      print("Response Body: ${response.data}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {
@@ -468,25 +472,383 @@ class ApiService {
         };
       }
     } catch (e) {
-      if (e is DioException) {
-        if (e.response != null) {
-          print("Dio Exception Response: ${e.response?.data}");
-          return {
-            "success": false,
-            "message":
-                "Event creation failed with status code ${e.response?.statusCode}",
-            "error_details": e.response?.data ?? "No additional details",
-          };
-        } else {
-          return {
-            "success": false,
-            "message": "Event creation failed: $e",
-            "error_details": e.toString(),
-          };
-        }
+      if (e is DioException && e.response != null) {
+        return {
+          "success": false,
+          "message":
+              "Event creation failed with status code ${e.response?.statusCode}",
+          "error_details": e.response?.data ?? "No additional details",
+        };
       } else {
         return {"success": false, "message": "An unknown error occurred: $e"};
       }
     }
   }
+
+  // create events
+  // Future<Map<String, dynamic>?> createEvent({
+  //   required String name,
+  //   required String description,
+  //   required String eventAddress,
+  //   required double addressLongitude,
+  //   required double addressLatitude,
+  //   required File imageUrl,
+  //   required String categoryId, // If your backend expects int, change to int
+  //   required int private,
+  //   required int userId,
+  //   required String startDate,
+  //   required String endDate,
+  //   required int nbPlace,
+  //   required String startTicket,
+  //   required String endTicket,
+  //   required int status,
+  //   required List<String> guest,
+  // }) async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   String? token = prefs.getString("token");
+
+  //   try {
+  //     print('Creating Event with data: $name, $description, $eventAddress');
+  //     print("📦 Preparing to send event:");
+  //     print("🔑 Token: $token");
+  //     print("📝 Name: $name");
+  //     print("📍 Address: $eventAddress ($addressLatitude, $addressLongitude)");
+  //     print("🖼️ Image: ${imageUrl.path}");
+  //     print("📅 Dates: $startDate to $endDate");
+  //     print("🎫 Tickets: $startTicket to $endTicket");
+  //     print("👥 Guests: $guest");
+  //     print(
+  //       "🔢 Category ID: $categoryId | Private: $private | Status: $status",
+  //     );
+
+  //     print("File exists: ${await imageUrl.exists()}");
+  //     print("File path: ${imageUrl.path}");
+  //     print("File size: ${await imageUrl.length()} bytes");
+
+  //     String fileName = imageUrl.path.split('/').last;
+  //     MultipartFile multipartFile = await MultipartFile.fromFile(imageUrl.path);
+
+  //     FormData formData = FormData.fromMap({
+  //       "name": name,
+  //       "description": description,
+  //       "event_address": eventAddress,
+  //       "address_longitude": addressLongitude,
+  //       "address_latitude": addressLatitude,
+  //       "category_id":
+  //           categoryId, // or int.parse(categoryId) if backend needs int
+  //       "image_url": multipartFile,
+  //       "private": private,
+  //       "user_id": userId,
+  //       "start_date": startDate,
+  //       "end_date": endDate,
+  //       "nb_place": nbPlace,
+  //       "start_ticket": startTicket,
+  //       "end_ticket": endTicket,
+  //       "status": status,
+  //       "guest": jsonEncode(guest),
+  //     });
+
+  //     Response response = await _dio.post(
+  //       ApiRoutes.createEvent,
+
+  //       options: Options(
+  //         headers: {
+  //           "Content-Type": "multipart/form-data",
+  //           'Authorization': 'Bearer $token',
+  //         },
+  //       ),
+  //       data: formData,
+  //     );
+
+  //     if (response.statusCode == 200 || response.statusCode == 201) {
+  //       return {
+  //         "success": true,
+  //         "message": "Event created successfully",
+  //         "data": response.data,
+  //       };
+  //     } else {
+  //       return {
+  //         "success": false,
+  //         "message":
+  //             "Error ${response.statusCode}: ${response.data['message'] ?? 'Unknown error'}",
+  //         "data": response.data,
+  //       };
+  //     }
+  //   } catch (e) {
+  //     if (e is DioException) {
+  //       if (e.response != null) {
+  //         print("Dio Exception Response: ${e.response?.data}");
+  //         return {
+  //           "success": false,
+  //           "message":
+  //               "Event creation failed with status code ${e.response?.statusCode}",
+  //           "error_details": e.response?.data ?? "No additional details",
+  //         };
+  //       } else {
+  //         return {
+  //           "success": false,
+  //           "message": "Event creation failed: $e",
+  //           "error_details": e.toString(),
+  //         };
+  //       }
+  //     } else {
+  //       return {"success": false, "message": "An unknown error occurred: $e"};
+  //     }
+  //   }
+  // }
+
+  // get packages
+  Future<Map<String, dynamic>?> getPackages() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    try {
+      Response response = await _dio.get(
+        ApiRoutes.getPackages,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          "success": true,
+          "message": "Packages retrieved successfully",
+          "data": response.data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": response.data["message"] ?? "Unknown error",
+        };
+      }
+    } catch (e) {
+      print("Error: $e");
+      return {"success": false, "message": "Failed to retrieve packages: $e"};
+    }
+  }
+
+  Future<Map<String, dynamic>?> getPackagesById(packageId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    try {
+      Response response = await _dio.get(
+        ApiRoutes.getPackages,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          "success": true,
+          "message": "Packages retrieved successfully",
+          "data": response.data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": response.data["message"] ?? "Unknown error",
+        };
+      }
+    } catch (e) {
+      print("Error: $e");
+      return {"success": false, "message": "Failed to retrieve packages: $e"};
+    }
+  }
+
+  // subscription
+  Future<Map<String, dynamic>?> subscribeToPackage({
+    required int userId,
+    required int packageId,
+    required int eventLimit,
+  }) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    try {
+      Response response = await _dio.post(
+        ApiRoutes.subscribtions,
+        data: {
+          "user_id": userId,
+          "package_id": packageId,
+          "event_limit": eventLimit,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      print("✅ Response status: ${response.statusCode}");
+      print("✅ Response data: ${response.data}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "message": response.data["message"] ?? "Subscription successful",
+          "data": response.data["data"] ?? response.data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": response.data["message"] ?? "Subscription failed",
+          "data": response.data,
+        };
+      }
+    } catch (e) {
+      if (e is DioError) {
+        print("❌ DioError: ${e.response?.data["message"]}");
+        return {
+          "success": false,
+          "message": e.response?.data["message"] ?? "Dio error occurred",
+          "data": e.response?.data,
+        };
+      }
+
+      print("❌ Unexpected error: $e");
+      return {"success": false, "message": "Unexpected error: $e"};
+    }
+  }
+
+  // create transaction
+  Future<Map<String, dynamic>?> createTransaction({
+    required int userId,
+    required String firstName,
+    required String lastName,
+    required String phone,
+    required double amount,
+    required String operator,
+    required List<dynamic> items,
+  }) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    final requestData = {
+      "id": userId,
+      "user_id": userId,
+      "firstName": firstName,
+      "lastName": lastName,
+      "phone": phone,
+      "amount": amount,
+      "price": amount,
+      "operator": operator,
+      "items": items,
+    };
+
+    print("📦 Submitting transaction data: $requestData");
+
+    try {
+      Response response = await _dio.post(
+        ApiRoutes.transactions,
+        data: requestData,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "message": "Transaction created successfully",
+          "data": response.data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": response.data["message"] ?? "Transaction failed",
+        };
+      }
+    } catch (e) {
+      if (e is DioError) {
+        print("❌ DioError: ${e.response?.data}");
+        return {
+          "success": false,
+          "message": e.response?.data["message"] ?? "Dio error occurred",
+          "data": e.response?.data,
+        };
+      }
+
+      print("❌ Unexpected error: $e");
+      return {"success": false, "message": "Unexpected error: $e"};
+    }
+  }
+
+  // get transaction by refernce
+  Future<Map<String, dynamic>?> getTransactionByReference({
+    required String referenceId,
+    required String client,
+  }) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    try {
+      final String url = "${ApiRoutes.transactions}/$referenceId/$client";
+
+      Response response = await _dio.get(
+        url,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          "success": true,
+          "message": "Transaction details retrieved",
+          "data": response.data,
+        };
+      } else {
+        return {
+          "success": false,
+          "message": response.data["message"] ?? "Transaction lookup failed",
+        };
+      }
+    } catch (e) {
+      print("Error: $e");
+      return {"success": false, "message": "Failed to get transaction: $e"};
+    }
+  }
+
+  Future<Map<String, dynamic>?> postSubscription(
+    Map<String, dynamic> payload,
+  ) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    final url = ApiRoutes.transactions;
+    final response = await _dio.post(
+      url,
+      data: payload,
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return {
+        "success": true,
+        "message": "Subscription successful",
+        "data": response.data,
+      };
+    } else {
+      return {
+        "success": false,
+        "message": response.data["message"] ?? "Subscription failed",
+      };
+    }
+  }
+
+  // Future<void> subscribeAfterTransaction({
+  //   required int userId,
+  //   required int packageId,
+  // }) async {
+  //   // 1. Récupérer le package pour obtenir le `event_limit`
+  //   final package = await getPackageById(packageId);
+  //   final eventLimit = package["event_limit"];
+
+  //   // 2. Faire la souscription
+  //   final result = await subscribeToPackage(
+  //     userId: userId,
+  //     packageId: packageId,
+  //     eventLimit: eventLimit,
+  //   );
+
+  //   if (result?["success"] == true) {
+  //     // Afficher succès ou rediriger
+  //   }
+  // }
 }

@@ -192,7 +192,7 @@ class _CreateEventPageState extends State<CreateEventView> {
       addressLatitude: latitude!,
       imageUrl: imageUrl!, // Pass the file instead of a string
       categoryId: selectedCategoryId.toString(),
-      private: 1, // Set default private value (adjust as needed)
+      private: 0, // Set default private value (adjust as needed)
       userId: userId, // Use stored user ID
       startDate: startDate!.toIso8601String(),
       endDate: endDate!.toIso8601String(),
@@ -268,7 +268,7 @@ class _CreateEventPageState extends State<CreateEventView> {
                 leading: Icon(Icons.image),
                 title: Text(
                   'Select Image from Gallery',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 onTap: () async {
                   // Pick image from gallery
@@ -632,15 +632,8 @@ class _CreateEventPageState extends State<CreateEventView> {
               //     onTap: _onTap, // Allow user to select location on map
               //   ),
               // ),
-              ListTile(
-                leading: Icon(Icons.map),
-                title: Text("Choisir un emplacement sur la carte"),
-                subtitle:
-                    latitude != null
-                        ? Text("Lat: $latitude, Lng: $longitude")
-                        : null,
-                onTap: _openMapSelector,
-              ),
+              _buildLocationButton(),
+
 
 
               GestureDetector(
@@ -691,4 +684,61 @@ class _CreateEventPageState extends State<CreateEventView> {
       ),
     );
   }
+
+
+  
+Widget _buildLocationButton() {
+  return InkWell(
+    onTap: _openMapSelector,
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.location_pin, size: 43, color: Colors.blue),
+          const SizedBox(width: 08),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Choisir un emplacement sur la carte",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (latitude != null && longitude != null)
+                  Text(
+                    "Lat: $latitude, Lng: $longitude",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: Colors.grey),
+        ],
+      ),
+    ),
+  );
 }
+
+}
+
+
+

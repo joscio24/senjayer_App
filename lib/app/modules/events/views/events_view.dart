@@ -56,7 +56,7 @@ class _EventsViewState extends State<EventsView> {
               "id": event["id"],
               "image":
                   event["image_url"] ??
-                  "assets/logoy.jpg", // Default image if missing
+                  "https://admin.senjayer.com/Ic%C3%B4ne.png", // Default image if missing
               "title": event["name"] ?? "No Title",
               "location": event["event_address"] ?? "Unknown Location",
               "latitude": event["latitude"] ?? '29379907',

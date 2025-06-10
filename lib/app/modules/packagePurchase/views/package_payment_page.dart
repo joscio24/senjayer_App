@@ -1,8 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:senjayer/api/api_routes.dart';
+import 'package:senjayer/api/api_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:senjayer/widgets/custom_button.dart';
 import 'package:flutter/services.dart';
+
+import 'package:dio/dio.dart';
 
 class PaymentPage extends StatefulWidget {
   const PaymentPage({super.key});
@@ -11,7 +17,8 @@ class PaymentPage extends StatefulWidget {
   State<PaymentPage> createState() => _PaymentPageState();
 }
 
-class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStateMixin {
+class _PaymentPageState extends State<PaymentPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   final _cardFormKey = GlobalKey<FormState>();
@@ -24,37 +31,181 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
   final cvv = TextEditingController();
   final mobileNumber = TextEditingController();
   final email = TextEditingController();
+  final firstName = TextEditingController();
+  final lastName = TextEditingController();
+  int userIdfetch = 0;
+  final Map<String, dynamic> selectedPackage = Get.arguments;
 
+  final Dio _dio = Dio();
   bool isLoading = false;
 
   @override
   void initState() {
     _tabController = TabController(length: 3, vsync: this);
+    // selectedPackage = Get.arguments;
+    _getUserId();
     super.initState();
   }
 
-  Future<void> _confirmPayment() async {
-    setState(() => isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+  void _getUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('premium_paid', true);
-    setState(() => isLoading = false);
-    Get.snackbar("Paiement validé", "Merci pour votre souscription Premium !");
-    Get.offNamed("/user_events_create");
+
+    // Retrieve the stored string
+    String? userString = prefs.getString("user");
+
+    if (userString != null) {
+      // Decode JSON into a Map
+      Map<String, dynamic> userData = jsonDecode(userString);
+
+      setState(() {
+        userIdfetch = userData["id"] ?? 0; // Get 'id', default to 0 if null
+      });
+    } else {
+      setState(() {
+        userIdfetch = 0; // Default value if "user" does not exist
+      });
+    }
   }
+
+  Future<Map<String, dynamic>?> checkTransactionStatus({
+    required String referenceId,
+    required String client,
+    required String packageId,
+  }) async {
+    try {
+      final response = await _dio.get(
+        "${ApiRoutes.baseUrl}/v1/transactions/$referenceId/$client",
+        queryParameters: {'package_id': packageId},
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+    } catch (e) {
+      print("Error checking status: $e");
+    }
+    return null;
+  }
+
+  Future<void> _confirmPayment(String type) async {
+    setState(() => isLoading = true);
+
+    final name = firstName.text.trim();
+    final surname = lastName.text.trim();
+    final phone = mobileNumber.text.trim();
+    final double amount =
+        double.tryParse(selectedPackage['price'].toString()) ?? 0.0;
+    final int userId = userIdfetch;
+
+    try {
+      final api = ApiService();
+
+      // Step 1: Create the transaction
+      final result = await api.createTransaction(
+        userId: userId,
+        firstName: name,
+        lastName: surname,
+        phone: phone,
+        amount: amount,
+        operator: selectedNetwork,
+        items: [
+          {
+            'package_id': selectedPackage['id'],
+            'name': selectedPackage['name'],
+            'price': selectedPackage['price'],
+          },
+        ],
+      );
+
+      if (result == null ||
+          result['success'] != true ||
+          result['data'] == null) {
+        setState(() => isLoading = false);
+        Get.snackbar(
+          "Erreur",
+          result?['message'] ?? "Échec de la transaction.",
+        );
+        return;
+      }
+
+      final data = result['data'];
+      final referenceId = data['reference'];
+      final client = selectedNetwork;
+      final packageId = selectedPackage['id'].toString();
+
+      // Step 2: Poll for status
+      const int maxRetries = 15;
+      int attempt = 0;
+      bool isPaid = false;
+
+      while (attempt < maxRetries && !isPaid) {
+        await Future.delayed(Duration(seconds: 4));
+        final statusResult = await checkTransactionStatus(
+          referenceId: referenceId,
+          client: client,
+          packageId: packageId,
+        );
+
+        if (statusResult != null && statusResult['data']?['status'] == 'paid') {
+          isPaid = true;
+          break;
+        }
+
+        attempt++;
+      }
+
+      setState(() => isLoading = false);
+
+      if (isPaid) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('premium_paid', true);
+
+        Get.snackbar(
+          "Paiement validé",
+          "Merci pour votre souscription Premium via $type !",
+        );
+        Get.offNamed("/user_events_create");
+      } else {
+        Get.snackbar("Temps écoulé", "Aucune confirmation de paiement reçue.");
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+      Get.snackbar("Erreur", "Une erreur est survenue : $e");
+    }
+  }
+
+  // void _validateAndPay() {
+  //   final currentTab = _tabController.index;
+  //   final isValid =
+  //       [
+  //         _cardFormKey.currentState?.validate(),
+  //         _mobileFormKey.currentState?.validate(),
+  //         _electronicFormKey.currentState?.validate(),
+  //       ][currentTab] ??
+  //       false;
+
+  //   if (isValid) {
+  //     _confirmPayment();
+  //   } else {
+  //     Get.snackbar("Erreur", "Veuillez compléter les champs requis.");
+  //   }
+  // }
 
   void _validateAndPay() {
     final currentTab = _tabController.index;
-    final isValid = [
-      _cardFormKey.currentState?.validate(),
-      _mobileFormKey.currentState?.validate(),
-      _electronicFormKey.currentState?.validate(),
-    ][currentTab] ?? false;
+    final formKeys = [_cardFormKey, _mobileFormKey, _electronicFormKey];
+    final paymentTypes = ["card", "mobile", "electronic"];
 
-    if (isValid) {
-      _confirmPayment();
+    final currentKey = formKeys[currentTab];
+    final paymentType = paymentTypes[currentTab];
+
+    if (currentKey.currentState?.validate() ?? false) {
+      _confirmPayment(paymentType);
     } else {
-      Get.snackbar("Erreur", "Veuillez compléter les champs requis.");
+      Get.snackbar(
+        "Erreur",
+        "Veuillez compléter les champs requis pour $paymentType.",
+      );
     }
   }
 
@@ -68,7 +219,10 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Paiement Premium", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Paiement Premium",
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -81,26 +235,28 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
           ],
         ),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-        controller: _tabController,
-        children: [
-          _buildCardPaymentForm(),
-          _buildMobileMoneyForm(),
-          _buildElectronicPaymentForm(),
-        ],
-      ),
-      bottomNavigationBar: isLoading
-          ? null
-          : Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: MainButtons(
-          text: "Payer maintenant",
-          icon: const Icon(Icons.lock, color: Colors.white),
-          onPressed: _validateAndPay,
-        ),
-      ),
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildCardPaymentForm(),
+                  _buildMobileMoneyForm(),
+                  _buildElectronicPaymentForm(),
+                ],
+              ),
+      bottomNavigationBar:
+          isLoading
+              ? null
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: MainButtons(
+                  text: "Payer maintenant",
+                  icon: const Icon(Icons.lock, color: Colors.white),
+                  onPressed: _validateAndPay,
+                ),
+              ),
     );
   }
 
@@ -111,6 +267,44 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
         key: _cardFormKey,
         child: Column(
           children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.star_border, color: Colors.blue),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "${selectedPackage['name']} - Prix: ${selectedPackage['price']}",
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: firstName,
+              decoration: _inputDecoration("Prénom"),
+              validator: (value) => value!.isEmpty ? "Champ requis" : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: lastName,
+              decoration: _inputDecoration("Nom"),
+              validator: (value) => value!.isEmpty ? "Champ requis" : null,
+            ),
+            const SizedBox(height: 12),
+
             TextFormField(
               controller: cardNumber,
               decoration: _inputDecoration("Numéro de carte"),
@@ -119,7 +313,11 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
                 FilteringTextInputFormatter.digitsOnly,
                 _CardNumberInputFormatter(),
               ],
-              validator: (value) => value!.replaceAll(' ', '').length < 12 ? "Numéro invalide" : null,
+              validator:
+                  (value) =>
+                      value!.replaceAll(' ', '').length < 12
+                          ? "Numéro invalide"
+                          : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -141,7 +339,8 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
                       LengthLimitingTextInputFormatter(4),
                       _ExpiryDateInputFormatter(),
                     ],
-                    validator: (value) => value!.length != 5 ? "Date invalide" : null,
+                    validator:
+                        (value) => value!.length != 5 ? "Date invalide" : null,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -152,7 +351,8 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
                     keyboardType: TextInputType.number,
                     obscureText: true,
                     inputFormatters: [LengthLimitingTextInputFormatter(4)],
-                    validator: (value) => value!.length < 3 ? "CVV invalide" : null,
+                    validator:
+                        (value) => value!.length < 3 ? "CVV invalide" : null,
                   ),
                 ),
               ],
@@ -190,45 +390,92 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
       padding: const EdgeInsets.all(16),
       child: Form(
         key: _mobileFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Choisissez un réseau :", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                  _networkCard("MTN", Colors.yellow.shade700, 'assets/images/mtn.png'),
-                _networkCard("Moov", Colors.orange, 'assets/images/moov.png'),
-                _networkCard("Celtis", 
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.star_border, color: Colors.blue),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "${selectedPackage['name']} - Prix: ${selectedPackage['price']}",
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+              const Text(
+                "Choisissez un réseau :",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _networkCard(
+                    "MTN",
+                    Colors.yellow.shade700,
+                    'assets/images/mtn.png',
+                  ),
+                  _networkCard("MOOV", Colors.orange, 'assets/images/moov.png'),
+                  _networkCard(
+                    "CELTIS",
                     Color.fromARGB(255, 4, 44, 81),
-                    'assets/images/celtis.png'),
-              ],
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: mobileNumber,
-              decoration: _inputDecoration("Numéro Mobile Money"),
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (selectedNetwork.isEmpty) return "Sélectionnez un réseau";
-                if (value == null || value.length < 8) return "Numéro invalide";
-                return null;
-              },
-            ),
-          ],
+                    'assets/images/celtis.png',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: firstName,
+                decoration: _inputDecoration("Prénom"),
+                validator: (value) => value!.isEmpty ? "Champ requis" : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: lastName,
+                decoration: _inputDecoration("Nom"),
+                validator: (value) => value!.isEmpty ? "Champ requis" : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: mobileNumber,
+                decoration: _inputDecoration("Numéro Mobile Money"),
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (selectedNetwork.isEmpty) return "Sélectionnez un réseau";
+                  if (value == null || value.length < 8)
+                    return "Numéro invalide";
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-
-
   Widget _networkCard(String name, Color color, String imagePath) {
     final isSelected = selectedNetwork == name;
 
     return GestureDetector(
-      onTap: () => setState(() => selectedNetwork = name),
+      onTap: () => setState(() => selectedNetwork = name.toUpperCase()),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(12),
@@ -236,7 +483,10 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
         decoration: BoxDecoration(
           color: isSelected ? color.withOpacity(0.1) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? color : Colors.grey.shade300, width: 2),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: 2,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black12.withOpacity(0.05),
@@ -262,18 +512,51 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
     );
   }
 
-
   Widget _buildElectronicPaymentForm() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _electronicFormKey,
-        child: TextFormField(
-          controller: email,
-          decoration: _inputDecoration("Adresse email"),
-          keyboardType: TextInputType.emailAddress,
-          validator: (value) =>
-          value!.isEmpty || !value.contains("@") ? "Email invalide" : null,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.star_border, color: Colors.blue),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "${selectedPackage['name']} - Prix: ${selectedPackage['price']}",
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            Form(
+              key: _electronicFormKey,
+              child: TextFormField(
+                controller: email,
+                decoration: _inputDecoration("Adresse email"),
+                keyboardType: TextInputType.emailAddress,
+                validator:
+                    (value) =>
+                        value!.isEmpty || !value.contains("@")
+                            ? "Email invalide"
+                            : null,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -282,7 +565,10 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
 
 class _CardNumberInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue old, TextEditingValue now) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue old,
+    TextEditingValue now,
+  ) {
     // Supprimer tout sauf les chiffres
     String digitsOnly = now.text.replaceAll(RegExp(r'\D'), '');
 
@@ -292,7 +578,10 @@ class _CardNumberInputFormatter extends TextInputFormatter {
     }
 
     // Ajouter un espace toutes les 4 chiffres
-    String spaced = digitsOnly.replaceAllMapped(RegExp(r".{1,4}"), (m) => "${m.group(0)} ").trimRight();
+    String spaced =
+        digitsOnly
+            .replaceAllMapped(RegExp(r".{1,4}"), (m) => "${m.group(0)} ")
+            .trimRight();
 
     // Calculer une position de curseur sûre
     final offset = spaced.length.clamp(0, spaced.length);
@@ -304,10 +593,12 @@ class _CardNumberInputFormatter extends TextInputFormatter {
   }
 }
 
-
 class _ExpiryDateInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue old, TextEditingValue now) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue old,
+    TextEditingValue now,
+  ) {
     var text = now.text.replaceAll("/", "");
     if (text.length > 4) text = text.substring(0, 4);
 

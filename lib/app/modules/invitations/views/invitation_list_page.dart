@@ -70,7 +70,7 @@ class _EventsViewState extends State<EventsViewInvites> {
       invitations = filteredEvents.map((event) {
         return {
           "id": event["id"],
-          "image": event["image_url"] ?? "assets/logoY.jpg",
+          "image": event["image_url"] ?? "https://admin.senjayer.com/Ic%C3%B4ne.png",
           "title": event["name"] ?? "No Title",
           "location": event["event_address"] ?? "Unknown Location",
           "latitude": event["latitude"] ?? '0',

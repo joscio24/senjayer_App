@@ -93,7 +93,7 @@ class _DashboardViewState extends State {
         (eventsResponse["events"] is List)
             ? eventsResponse["events"] // Direct list
             : (eventsResponse["events"]["data"] ?? []);
-
+ 
     List filteredEvents = eventList.where((event) {
       return event["private"] == 1;
 
@@ -1050,32 +1050,23 @@ Widget _buildEventActions() {
       'label': 'Créer',
       'icon': Icons.add_circle,
       'color': Colors.orange,
-      'route': '/user_events_packs',
+      'route': '/user_events_packs', // default fallback
+      'checkSubscription': true,
     },
-    // {
-    //   'label': 'Stats',
-    //   'icon': Icons.pie_chart,
-    //   'color': Colors.redAccent,
-    //   'route': '/stats',
-    // },
     {
       'label': 'Contrôle',
       'icon': Icons.verified_user,
       'color': Colors.teal,
       'route': '/control',
+      'checkSubscription': false,
     },
     {
       'label': 'Scan',
       'icon': Icons.qr_code_scanner,
       'color': Colors.indigo,
       'route': '/scan',
+      'checkSubscription': false,
     },
-    // {
-    //   'label': 'Retrait',
-    //   'icon': Icons.attach_money,
-    //   'color': Colors.green,
-    //   'route': '/retrait',
-    // },
   ];
 
   return Padding(
@@ -1089,23 +1080,26 @@ Widget _buildEventActions() {
       childAspectRatio: 0.85,
       children: items.map((item) {
         return GestureDetector(
+          onTap: () async {
+            if (item['checkSubscription'] == true) {
+              final prefs = await SharedPreferences.getInstance();
+              final hasPremium = prefs.getBool('premium_paid') ?? false;
+              final hasFree = prefs.getInt('event_limit') != null;
 
-          onTap: () => Get.toNamed(item['route'] as String),
+              if (hasPremium || hasFree) {
+                Get.toNamed('/user_events_create'); // Go to create page
+              } else {
+                Get.toNamed(item['route'] as String); // Go to /user_events_packs
+              }
+            } else {
+              Get.toNamed(item['route'] as String);
+            }
+          },
           child: Container(
-
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               color: Colors.white,
-
               border: Border.all(color: Colors.grey.shade200),
-              // boxShadow: [
-              //   BoxShadow(
-              //     color: Colors.black.withOpacity(0.02),
-              //     blurRadius: 6,
-              //     offset: const Offset(0, 2),
-              //   ),
-              // ],
-
               boxShadow: [
                 BoxShadow(
                   color: Colors.black12,

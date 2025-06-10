@@ -145,7 +145,8 @@ class _InviterContactsPageState extends State<InviterContactsPage> {
     CREATE TABLE IF NOT EXISTS invitations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       contact_id INTEGER,
-      event_id INTEGER
+      event_id INTEGER,
+      event_name TEXT
       -- Add more columns here if your schema includes them
     );
   ''');
