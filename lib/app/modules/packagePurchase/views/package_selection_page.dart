@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:senjayer/app/core/theme.dart';
 import 'package:senjayer/widgets/custom_button.dart';
+import 'package:senjayer/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:senjayer/api/api_services.dart';
 
@@ -191,6 +192,18 @@ class _PackageSelectionPageState extends State<PackageSelectionPage> {
               ],
             ),
             const SizedBox(height: 16),
+            if ((package['subscriptions'] as List?)?.isNotEmpty == true)
+              const Padding(
+                padding: EdgeInsets.only(left: 8.0),
+                child: Text(
+                  "Déjà souscrit",
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
             ...starterIncluded.map((f) => _buildFeatureRow(f, included: true)),
             ...(isStarter
                 ? premiumOnly.map((f) => _buildFeatureRow(f, included: false))
@@ -225,6 +238,39 @@ class _PackageSelectionPageState extends State<PackageSelectionPage> {
     return false;
   }
 
+  // void _validateAndNavigate() async {
+  //   if (selectedPackage.isEmpty) {
+  //     Get.snackbar("Erreur", "Veuillez sélectionner une offre");
+  //     return;
+  //   }
+
+  //   final selected = availablePackages.firstWhere(
+  //     (p) => p['id'].toString() == selectedPackage,
+  //   );
+
+  //   final isFree = selected['price'] == 0;
+  //   final userId = userIdfetch;
+  //   final packageId = selected['id'];
+  //   final eventLimit = selected['event_limit'] ?? 3;
+
+  //   bool success = await _registerSubscription(
+  //     userId: userId,
+  //     packageId: packageId,
+  //     eventLimit: eventLimit,
+  //     isFree: isFree,
+  //   );
+
+  //   if (success) {
+  //     if (isFree) {
+  //       Get.offNamed("/user_events_create", arguments: selected);
+  //     } else {
+  //       Get.toNamed("/user_events_packs_payment", arguments: selected);
+  //     }
+  //   } else {
+  //     Get.snackbar("Erreur", "Échec de la souscription");
+  //   }
+  // }
+
   void _validateAndNavigate() async {
     if (selectedPackage.isEmpty) {
       Get.snackbar("Erreur", "Veuillez sélectionner une offre");
@@ -240,6 +286,21 @@ class _PackageSelectionPageState extends State<PackageSelectionPage> {
     final packageId = selected['id'];
     final eventLimit = selected['event_limit'] ?? 3;
 
+    final alreadySubscribed =
+        (selected['subscriptions'] as List?)?.isNotEmpty == true;
+
+    if (alreadySubscribed) {
+      // No need to subscribe or go to payment
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('premium_paid', !isFree);
+      await prefs.setInt('event_limit', eventLimit);
+      await prefs.setInt('package_id', packageId);
+
+      Get.offNamed("/user_events_create", arguments: selected);
+      return;
+    }
+
+    // User is not yet subscribed — continue with normal flow
     bool success = await _registerSubscription(
       userId: userId,
       packageId: packageId,
@@ -269,7 +330,7 @@ class _PackageSelectionPageState extends State<PackageSelectionPage> {
       ),
       body:
           loading
-              ? const Center(child: CircularProgressIndicator())
+              ? const CustomLoader()
               : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(

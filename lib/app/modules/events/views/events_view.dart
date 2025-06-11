@@ -6,8 +6,10 @@ import 'package:senjayer/api/api_services.dart';
 import 'package:senjayer/app/core/theme.dart';
 import 'package:senjayer/widgets/custom_button.dart';
 import 'package:senjayer/widgets/custom_cards.dart';
+import 'package:senjayer/widgets/custom_loader.dart';
 import 'package:senjayer/widgets/custom_textfield.dart';
 import 'package:intl/intl.dart';
+import 'package:add_2_calendar/add_2_calendar.dart';
 
 import '../../contactInvite/views/contactList.dart';
 
@@ -22,6 +24,7 @@ class _EventsViewState extends State<EventsView> {
   // final email_controller = TextEditingController();
 
   late List<Map<String, dynamic>> invitations = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -29,9 +32,10 @@ class _EventsViewState extends State<EventsView> {
     _loadUserEvents();
   }
 
+  
   Future<void> _loadUserEvents() async {
     ApiService apiService = ApiService();
-    
+
     var eventsResponse = await apiService.getUsersEventsData();
 
     if (eventsResponse == null || !(eventsResponse["success"] as bool)) {
@@ -44,10 +48,10 @@ class _EventsViewState extends State<EventsView> {
             ? eventsResponse["events"] // Direct list
             : (eventsResponse["events"]["data"] ?? []);
 
-    List filteredEvents = eventList.where((event) {
-      return event["private"] == 1;
-
-    }).toList();
+    List filteredEvents =
+        eventList.where((event) {
+          return event["private"] == 1;
+        }).toList();
 
     setState(() {
       invitations =
@@ -59,16 +63,14 @@ class _EventsViewState extends State<EventsView> {
                   "https://admin.senjayer.com/Ic%C3%B4ne.png", // Default image if missing
               "title": event["name"] ?? "No Title",
               "location": event["event_address"] ?? "Unknown Location",
-              "latitude": event["latitude"] ?? '29379907',
-              "longitude": event["longitude"] ?? '29379907',
+              "latitude": event["address_latitude"] ?? '29379907',
+              "longitude": event["address_longitude"] ?? '29379907',
               "dateTime": _formatDate(
                 event["start_date"],
                 event["end_date"],
               ), // Format date properly
-              "endDate": _formatDate(
-                event["end_date"],
-                event["start_date"],
-              ), // Optional: end date if needed
+              "endDate": _formatDate(event["end_date"], event["start_date"]),
+              "updated_at": event["updated_at"], // Optional: end date if needed
               "description":
                   event["description"] ??
                   "No description available", // Optional: description
@@ -86,7 +88,7 @@ class _EventsViewState extends State<EventsView> {
                   "false", // Optional: ticket availability
             };
           }).toList();
-
+      isLoading = false;
       // print("Invitations: $eventList");
     });
   }
@@ -151,6 +153,13 @@ class _EventsViewState extends State<EventsView> {
     List<String> dateParts = formattedDate.split(", ");
     List<String> dayParts = dateParts[1].split(" ");
 
+    final sortedInvitations = List<Map<String, dynamic>>.from(invitations)
+      ..sort(
+        (a, b) => DateTime.parse(
+          b['updated_at'],
+        ).compareTo(DateTime.parse(a['updated_at'])),
+      );
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -207,35 +216,70 @@ class _EventsViewState extends State<EventsView> {
 
               SizedBox(height: 20),
 
-              Column(
-                children: invitations.isEmpty
-                    ? [ // If the invitations list is empty, show the "Aucune invitations reçues" text
-                  Center(
-                    child: Text(
-                      "Aucun évènement",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
+              // Column(
+              //   children: invitations.isEmpty
+              //       ? [ // If the invitations list is empty, show the "Aucune invitations reçues" text
+              //     Center(
+              //       child: Text(
+              //         "Aucun évènement",
+              //         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              //       ),
+              //     ),
+              //   ]
+              //       : invitations.map((invitation) {
+              //         return GestureDetector(
+              //           onTap: () {
+              //             Get.toNamed(
+              //               '/user_events_details',
+              //               arguments: invitation,
+              //             );
+              //           },
+              //           child: EventCard(
+              //             evimage: invitation["image"]!,
+              //             title: invitation["title"]!,
+              //             location: invitation["location"]!,
+              //             dateTime: invitation["dateTime"]!,
+              //             description: invitation["description"]!,
+              //             endDate: invitation["endDate"]!,
+              //           ),
+              //         );
+              //       }).toList(),
+              // ),
+              isLoading
+                  ? const CustomLoader()
+                  : Column(
+                    children:
+                        sortedInvitations.isEmpty
+                            ? [
+                              Center(
+                                child: Text(
+                                  "Aucun évènement",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ]
+                            : sortedInvitations.map((invitation) {
+                              return GestureDetector(
+                                onTap: () {
+                                  Get.toNamed(
+                                    '/user_events_details',
+                                    arguments: invitation,
+                                  );
+                                },
+                                child: EventCard(
+                                  evimage: invitation["image"]!,
+                                  title: invitation["title"]!,
+                                  location: invitation["location"]!,
+                                  dateTime: invitation["dateTime"]!,
+                                  description: invitation["description"]!,
+                                  endDate: invitation["endDate"]!,
+                                ),
+                              );
+                            }).toList(),
                   ),
-                ]
-                    : invitations.map((invitation) {
-                      return GestureDetector(
-                        onTap: () {
-                          Get.toNamed(
-                            '/user_events_details',
-                            arguments: invitation,
-                          );
-                        },
-                        child: EventCard(
-                          evimage: invitation["image"]!,
-                          title: invitation["title"]!,
-                          location: invitation["location"]!,
-                          dateTime: invitation["dateTime"]!,
-                          description: invitation["description"]!,
-                          endDate: invitation["endDate"]!,
-                        ),
-                      );
-                    }).toList(),
-              ),
 
               // Logo
             ],
@@ -244,7 +288,8 @@ class _EventsViewState extends State<EventsView> {
       ),
       bottomNavigationBar: buildBottomNavigation(),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => {Get.toNamed("/user_events_packs")}, // Icon for the FAB
+        onPressed:
+            () => {Get.toNamed("/user_events_packs")}, // Icon for the FAB
         tooltip: 'Add Event',
         child: Icon(Icons.add), // Tooltip when hovering or long pressing
       ),
@@ -371,10 +416,7 @@ Widget buildBottomNavigation() {
           child: _buildNavItem("assets/home_icon.png", "Accueil"),
         ),
         InkWell(
-          onTap:
-              () => {
-              Get.to(() => ListeContactsReseauPage())
-          },
+          onTap: () => {Get.to(() => ListeContactsReseauPage())},
           child: _buildNavItem("assets/contacts_icon.png", "Mon réseau"),
         ),
       ],

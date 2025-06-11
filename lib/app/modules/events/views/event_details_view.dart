@@ -1,3 +1,4 @@
+import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -89,6 +90,68 @@ class EventDetailsViewState extends State<EventDetailsView> {
 
   @override
   Widget build(BuildContext context) {
+    void _addEventToCalendar() {
+      final dateTimeRange = invitation['dateTime'] as String;
+      final parts = dateTimeRange.split(
+        ' to ',
+      ); // Or whatever separator you have
+
+      if (parts.length == 2) {
+        DateTime startDate = DateTime.parse(parts[0]);
+        DateTime endDate = DateTime.parse(parts[1]);
+
+        final event = Event(
+          title: invitation["title"] ?? 'Événement',
+          description: '',
+          location: invitation["location"] ?? '',
+          startDate: startDate,
+          endDate: endDate,
+          allDay: false,
+        );
+
+        Add2Calendar.addEvent2Cal(event).then((success) {
+          if (success) {
+            showCustomAddSuccessDialog(
+              context,
+              "Ajouté avec succès au calendrier",
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('L’ajout au calendrier a échoué')),
+            );
+          }
+        });
+      } else {
+        // fallback if format unexpected
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Format de date invalide')));
+      }
+    }
+
+    String transformToFirebaseUrl(String url) {
+      if (url.startsWith('https://storage.cloud.google.com/')) {
+        final uri = Uri.parse(url);
+        final pathSegments = uri.pathSegments;
+
+        // Extract the bucket and the path to the file
+        final bucket = pathSegments.first; // summer-monument-389019.appspot.com
+        final filePath = pathSegments
+            .skip(1)
+            .join('/'); // event-images/1749588617_1000088084.jpg
+        final encodedPath = Uri.encodeComponent(
+          filePath,
+        ); // encode to event-images%2F1749588617_1000088084.jpg
+
+        return 'https://firebasestorage.googleapis.com/v0/b/$bucket/o/$encodedPath?alt=media';
+      }
+
+      return url;
+    }
+
+    final String rawUrl = invitation['image'] ?? '';
+    final String imageUrl = transformToFirebaseUrl(rawUrl);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -107,20 +170,28 @@ class EventDetailsViewState extends State<EventDetailsView> {
                   ],
                 ),
                 child: Hero(
-                  tag: invitation['image']!,
+                  tag: imageUrl,
                   child: GestureDetector(
                     onTap: () {
-                      Get.to(() => ImageViewPage(imageUrl: invitation['image']!));
+                      Get.to(() => ImageViewPage(imageUrl: imageUrl));
                     },
                     child: Stack(
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(20),
                           child: Image.network(
-                            invitation['image']!,
+                            imageUrl,
                             width: MediaQuery.of(context).size.width,
                             height: 340,
                             fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/logoY.jpg',
+                                width: MediaQuery.of(context).size.width,
+                                height: 340,
+                                fit: BoxFit.cover,
+                              );
+                            },
                           ),
                         ),
                         Positioned(
@@ -132,7 +203,10 @@ class EventDetailsViewState extends State<EventDetailsView> {
                               shape: BoxShape.circle,
                             ),
                             child: IconButton(
-                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                color: Colors.white,
+                              ),
                               onPressed: () {
                                 Get.back();
                               },
@@ -143,7 +217,6 @@ class EventDetailsViewState extends State<EventDetailsView> {
                     ),
                   ),
                 ),
-
               ),
 
               SizedBox(height: 0),
@@ -207,23 +280,34 @@ class EventDetailsViewState extends State<EventDetailsView> {
                             padding: EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               color: Color.fromARGB(58, 182, 113, 255),
-                              borderRadius: BorderRadius.all(Radius.circular(50)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(50),
+                              ),
                             ),
-                            child: Icon(Icons.calendar_month_rounded, color: Colors.black),
+                            child: Icon(
+                              Icons.calendar_month_rounded,
+                              color: Colors.black,
+                            ),
                           ),
                           SizedBox(width: 10),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                invitation["dateTime"].toString().split(",").first,
+                                invitation["dateTime"]
+                                    .toString()
+                                    .split(",")
+                                    .first,
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w200,
                                 ),
                               ),
                               Text(
-                                invitation["dateTime"].toString().split(",").last,
+                                invitation["dateTime"]
+                                    .toString()
+                                    .split(",")
+                                    .last,
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
@@ -245,9 +329,14 @@ class EventDetailsViewState extends State<EventDetailsView> {
                               padding: EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 color: Color.fromARGB(58, 182, 113, 255),
-                                borderRadius: BorderRadius.all(Radius.circular(50)),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(50),
+                                ),
                               ),
-                              child: Icon(Icons.location_on, color: Colors.black),
+                              child: Icon(
+                                Icons.location_on,
+                                color: Colors.black,
+                              ),
                             ),
                             SizedBox(width: 10),
                             Column(
@@ -261,7 +350,9 @@ class EventDetailsViewState extends State<EventDetailsView> {
                                     fontWeight: FontWeight.w200,
                                   ),
                                   softWrap: true,
-                                  overflow: TextOverflow.ellipsis, // Truncate with ellipsis
+                                  overflow:
+                                      TextOverflow
+                                          .ellipsis, // Truncate with ellipsis
                                 ),
                                 Text(
                                   invitation["location"]!,
@@ -270,7 +361,9 @@ class EventDetailsViewState extends State<EventDetailsView> {
                                     fontWeight: FontWeight.w900,
                                   ),
                                   softWrap: true,
-                                  overflow: TextOverflow.ellipsis, // Truncate with ellipsis
+                                  overflow:
+                                      TextOverflow
+                                          .ellipsis, // Truncate with ellipsis
                                 ),
                               ],
                             ),
@@ -282,7 +375,6 @@ class EventDetailsViewState extends State<EventDetailsView> {
                 ),
               ),
 
-
               // action buttons
               SizedBox(height: 10),
               Padding(
@@ -291,35 +383,23 @@ class EventDetailsViewState extends State<EventDetailsView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     OutlinedButton(
-                      onPressed: () {
-                        // Get.toNamed('/detailsPage');
-                        showCustomAddSuccessDialog(
-                          context,
-                          "Ajouté avec succès au calendrier",
-                        );
-                      },
+                      onPressed: _addEventToCalendar,
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: appTheme.appViolet,
-                          width: 2,
-                        ), // Border color and width
+                        side: BorderSide(color: appTheme.appViolet, width: 2),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            30,
-                          ), // Rounded corners
+                          borderRadius: BorderRadius.circular(30),
                         ),
                         padding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 10,
-                        ), // Button padding
+                        ),
                       ),
                       child: Text(
                         "Ajouter au calendrier",
-                        style: TextStyle(
-                          color: appTheme.appViolet,
-                        ), // Text color
+                        style: TextStyle(color: appTheme.appViolet),
                       ),
                     ),
+
                     OutlinedButton(
                       onPressed: () {
                         Get.toNamed(
@@ -381,7 +461,7 @@ class EventDetailsViewState extends State<EventDetailsView> {
                         borderRadius: BorderRadius.circular(50),
 
                         child: Image.network(
-                          invitation['image']!,
+                          imageUrl,
                           width: 60,
                           height: 60,
                           fit: BoxFit.cover,

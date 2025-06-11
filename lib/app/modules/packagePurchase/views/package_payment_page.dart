@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:senjayer/api/api_routes.dart';
 import 'package:senjayer/api/api_services.dart';
+import 'package:senjayer/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:senjayer/widgets/custom_button.dart';
 import 'package:flutter/services.dart';
@@ -72,18 +73,42 @@ class _PaymentPageState extends State<PaymentPage>
     required String client,
     required String packageId,
   }) async {
+    final url = "${ApiRoutes.baseUrl}/v1/transactions/$referenceId/$client";
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    print("🔁 Checking status at: $url");
+    print("📦 Query parameters: package_id=$packageId");
+    print("🔐 Using token: $token");
+
     try {
       final response = await _dio.get(
-        "${ApiRoutes.baseUrl}/v1/transactions/$referenceId/$client",
+        url,
         queryParameters: {'package_id': packageId},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
+      print("✅ Response status code: ${response.statusCode}");
+      print("📝 Response data: ${response.data}");
+
+      final data = response.data;
+
       if (response.statusCode == 200) {
-        return response.data;
+        if (data['responsecode'] == "00") {
+          print("🎉 Payment confirmed.");
+          return data;
+        } else {
+          print("⚠️ Response code not 00: ${data['responsecode']}");
+        }
+      } else {
+        print("❌ Unexpected status code: ${response.statusCode}");
       }
-    } catch (e) {
-      print("Error checking status: $e");
+    } catch (e, stack) {
+      print("💥 Exception during transaction check: $e");
+      print("📚 Stack trace: $stack");
     }
+
     return null;
   }
 
@@ -117,6 +142,8 @@ class _PaymentPageState extends State<PaymentPage>
         ],
       );
 
+      print("Transaction creation response: $result");
+
       if (result == null ||
           result['success'] != true ||
           result['data'] == null) {
@@ -128,7 +155,7 @@ class _PaymentPageState extends State<PaymentPage>
         return;
       }
 
-      final data = result['data'];
+      final data = result['data']['data'];
       final referenceId = data['reference'];
       final client = selectedNetwork;
       final packageId = selectedPackage['id'].toString();
@@ -146,8 +173,11 @@ class _PaymentPageState extends State<PaymentPage>
           packageId: packageId,
         );
 
-        if (statusResult != null && statusResult['data']?['status'] == 'paid') {
+        print("Polling attempt $attempt: statusResult = $statusResult");
+
+        if (statusResult != null) {
           isPaid = true;
+          print("Payment confirmed!");
           break;
         }
 
@@ -170,6 +200,7 @@ class _PaymentPageState extends State<PaymentPage>
       }
     } catch (e) {
       setState(() => isLoading = false);
+      print("Error in _confirmPayment: $e");
       Get.snackbar("Erreur", "Une erreur est survenue : $e");
     }
   }
@@ -237,7 +268,7 @@ class _PaymentPageState extends State<PaymentPage>
       ),
       body:
           isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const CustomLoader()
               : TabBarView(
                 controller: _tabController,
                 children: [

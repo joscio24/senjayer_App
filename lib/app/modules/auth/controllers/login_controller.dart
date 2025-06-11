@@ -11,7 +11,7 @@ void _handleLogin(String Email, String Password) async {
     Get.toNamed("/dashboard");
   } else {
     print("Login failed: ${result["message"]}");
-  }
+  } 
 }
 
 void _handleRegister() async {

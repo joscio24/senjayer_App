@@ -7,6 +7,7 @@ import 'package:senjayer/app/modules/auth/views/pass_reset_view.dart';
 import 'package:senjayer/app/modules/auth/views/signup_view.dart';
 import 'package:senjayer/app/modules/carte/views/cart_view.dart';
 import 'package:senjayer/app/modules/contactInvite/views/InviterContactPage.dart';
+import 'package:senjayer/app/modules/controls/views/ControlAccounts.dart';
 import 'package:senjayer/app/modules/dashboard/views/dashboard_view.dart';
 import 'package:senjayer/app/modules/events/views/create_event_view.dart';
 import 'package:senjayer/app/modules/events/views/event_details_view.dart';
@@ -267,6 +268,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.DELETE_ACCOUNT,
       page: () => DeleteAccountPage(),
+      transition: Transition.cupertino,
+      transitionDuration: Duration(milliseconds: 300),
+    ),
+
+
+    GetPage(
+      name: AppRoutes.CONTROL,
+      page: () => Controlaccounts(),
       transition: Transition.cupertino,
       transitionDuration: Duration(milliseconds: 300),
     ),

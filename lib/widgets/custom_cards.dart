@@ -21,7 +21,8 @@ class InvitationCard extends StatelessWidget {
   final String? addressLongitude;
   final String? addressLatitude;
 
-  const InvitationCard({super.key, 
+  const InvitationCard({
+    super.key,
     this.id,
     this.categoryId,
     this.userId,
@@ -60,8 +61,7 @@ class InvitationCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             child: Image(
               image:
-                  evimage.isNotEmpty &&
-                          evimage.contains('https')
+                  evimage.isNotEmpty && evimage.contains('https')
                       ? NetworkImage(evimage) as ImageProvider
                       : AssetImage('assets/logo.png'),
               width: 100,
@@ -194,7 +194,8 @@ class EventCard extends StatelessWidget {
   final String? addressLongitude;
   final String? addressLatitude;
 
-  const EventCard({super.key, 
+  const EventCard({
+    super.key,
     this.id,
     this.categoryId,
     this.userId,
@@ -217,6 +218,29 @@ class EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String transformToFirebaseUrl(String url) {
+      if (url.startsWith('https://storage.cloud.google.com/')) {
+        final uri = Uri.parse(url);
+        final pathSegments = uri.pathSegments;
+
+        // Extract the bucket and the path to the file
+        final bucket = pathSegments.first; // summer-monument-389019.appspot.com
+        final filePath = pathSegments
+            .skip(1)
+            .join('/'); // event-images/1749588617_1000088084.jpg
+        final encodedPath = Uri.encodeComponent(
+          filePath,
+        ); // encode to event-images%2F1749588617_1000088084.jpg
+
+        return 'https://firebasestorage.googleapis.com/v0/b/$bucket/o/$encodedPath?alt=media';
+      }
+
+      return url;
+    }
+
+    final String rawUrl = evimage;
+    final String imageUrl = transformToFirebaseUrl(rawUrl);
+
     return Container(
       margin: EdgeInsets.symmetric(vertical: 8),
       // padding: EdgeInsets.all(10),
@@ -233,9 +257,8 @@ class EventCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             child: Image(
               image:
-                  evimage.isNotEmpty &&
-                          evimage.contains('https')
-                      ? NetworkImage(evimage) as ImageProvider
+                  imageUrl.isNotEmpty && imageUrl.contains('https')
+                      ? NetworkImage(imageUrl) as ImageProvider
                       : AssetImage('assets/logoY.jpg'),
               width: 100,
               height: 110,

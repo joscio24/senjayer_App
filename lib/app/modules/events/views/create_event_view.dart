@@ -125,11 +125,10 @@ class _CreateEventPageState extends State<CreateEventView> {
     }
   }
 
-  String? _formatDate(DateTime? date) {
-    return date == null
-        ? 'Non défini'
-        : DateFormat('dd MMM yyyy - HH:mm').format(date);
-  }
+  String _formatDate(DateTime date) {
+  // format date as you want, for example:
+  return DateFormat('dd/MM/yyyy').format(date);
+}
 
   // Fetch categories from the server
   void _loadCategories() async {
@@ -192,7 +191,7 @@ class _CreateEventPageState extends State<CreateEventView> {
       addressLatitude: latitude!,
       imageUrl: imageUrl!, // Pass the file instead of a string
       categoryId: selectedCategoryId.toString(),
-      private: 0, // Set default private value (adjust as needed)
+      private: 1, // Set default private value (adjust as needed)
       userId: userId, // Use stored user ID
       startDate: startDate!.toIso8601String(),
       endDate: endDate!.toIso8601String(),
@@ -319,12 +318,10 @@ class _CreateEventPageState extends State<CreateEventView> {
       MaterialPageRoute(builder: (context) => MapPickerPage()),
     );
 
-    
-      selectedLocation = await Navigator.push(
+    selectedLocation = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => MapPickerPage()),
     );
-    
 
     if (pickedLocation != null) {
       setState(() {
@@ -383,7 +380,7 @@ class _CreateEventPageState extends State<CreateEventView> {
                 onTap: _pickImage,
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.9,
-                  height: 200,
+                  height: 290,
                   decoration: BoxDecoration(
                     border: Border.all(width: 2, color: Colors.black26),
 
@@ -394,11 +391,21 @@ class _CreateEventPageState extends State<CreateEventView> {
                     borderRadius: BorderRadius.all(Radius.circular(20)),
                     child:
                         imageUrl == null
-                            ? Image.asset('assets/logo.png', height: 150)
+                            ? Image.asset(
+                              'assets/logo.png',
+                              height: 150,
+                              fit: BoxFit.cover,
+                              alignment:
+                                  Alignment
+                                      .topCenter, // 👈 ensures top part is shown
+                            )
                             : Image.file(
                               File(imageUrl!.path),
                               height: 150,
                               fit: BoxFit.cover,
+                              alignment:
+                                  Alignment
+                                      .topCenter, // 👈 crop starts from top
                             ),
                   ),
                 ),
@@ -464,136 +471,38 @@ class _CreateEventPageState extends State<CreateEventView> {
                 hintText: 'Enter event address',
               ),
               SizedBox(height: 16),
+
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Event Start Date
-                  Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Date de début de l'événement : ",
-                            style: TextStyle(fontSize: 16),
-                          ),
-
-                          Container(
-                            padding: EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                width: 1,
-                                color: Colors.black38,
-                              ),
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(30),
-                              ),
-                            ),
-                            width: MediaQuery.of(context).size.width * 0.9,
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed:
-                                  () => _selectDate(context, 'startDate'),
-                              child: Text(
-                                _formatDate(startDate) ?? 'Sélectionner',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  _buildDatePickerField(
+                    context,
+                    label: "Date de début de l'événement :",
+                    selectedDate: startDate,
+                    onTap: () => _selectDate(context, 'startDate'),
                   ),
                   SizedBox(height: 20),
-
-                  // Event End Date
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Date de fin de l'événement : ",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      SizedBox(width: 10),
-                      Container(
-                        padding: EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          border: Border.all(width: 1, color: Colors.black38),
-                          borderRadius: BorderRadius.all(Radius.circular(30)),
-                        ),
-                        width: MediaQuery.of(context).size.width * 0.9,
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: () => _selectDate(context, 'endDate'),
-                          child: Text(
-                            _formatDate(endDate) ?? 'Sélectionner',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ],
+                  _buildDatePickerField(
+                    context,
+                    label: "Date de fin de l'événement :",
+                    selectedDate: endDate,
+                    onTap: () => _selectDate(context, 'endDate'),
                   ),
                   SizedBox(height: 20),
-
-                  // Ticket Sale Start Date
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Début des ventes de billets : ",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      SizedBox(width: 10),
-                      Container(
-                        padding: EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          border: Border.all(width: 1, color: Colors.black38),
-                          borderRadius: BorderRadius.all(Radius.circular(30)),
-                        ),
-                        width: MediaQuery.of(context).size.width * 0.9,
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: () => _selectDate(context, 'startTicket'),
-                          child: Text(
-                            _formatDate(startTicket) ?? 'Sélectionner',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ],
+                  _buildDatePickerField(
+                    context,
+                    label: "Début des ventes de billets :",
+                    selectedDate: startTicket,
+                    onTap: () => _selectDate(context, 'startTicket'),
                   ),
                   SizedBox(height: 20),
-
-                  // Ticket Sale End Date
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Fin des ventes de billets : ",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      SizedBox(width: 10),
-                      Container(
-                        padding: EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          border: Border.all(width: 1, color: Colors.black38),
-                          borderRadius: BorderRadius.all(Radius.circular(30)),
-                        ),
-                        width: MediaQuery.of(context).size.width * 0.9,
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: () => _selectDate(context, 'endTicket'),
-                          child: Text(
-                            _formatDate(endTicket) ?? 'Sélectionner',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ],
+                  _buildDatePickerField(
+                    context,
+                    label: "Fin des ventes de billets :",
+                    selectedDate: endTicket,
+                    onTap: () => _selectDate(context, 'endTicket'),
                   ),
                   SizedBox(height: 20),
-
-                  // Submit Button
                 ],
               ),
 
@@ -634,40 +543,43 @@ class _CreateEventPageState extends State<CreateEventView> {
               // ),
               _buildLocationButton(),
 
-
-
               GestureDetector(
-            onTap: _openMapSelector,
-            child: SizedBox(
-              height: 200,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: selectedLocation != null
-                    ? GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: selectedLocation!,
-                          zoom: 15,
-                        ),
-                        markers: {
-                          Marker(
-                            markerId: MarkerId('selected_location'),
-                            position: selectedLocation!,
-                          ),
-                        },
-                        onMapCreated: (_) {},
-                        myLocationEnabled: false,
-                        zoomControlsEnabled: false,
-                        liteModeEnabled: true, // Important for performance
-                      )
-                    : Container(
-                        color: Colors.grey[200],
-                        child: Center(
-                          child: Text("Aucun emplacement sélectionné.\nAppuyez pour choisir.", textAlign: TextAlign.center),
-                        ),
-                      ),
+                onTap: _openMapSelector,
+                child: SizedBox(
+                  height: 200,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child:
+                        selectedLocation != null
+                            ? GoogleMap(
+                              initialCameraPosition: CameraPosition(
+                                target: selectedLocation!,
+                                zoom: 15,
+                              ),
+                              markers: {
+                                Marker(
+                                  markerId: MarkerId('selected_location'),
+                                  position: selectedLocation!,
+                                ),
+                              },
+                              onMapCreated: (_) {},
+                              myLocationEnabled: false,
+                              zoomControlsEnabled: false,
+                              liteModeEnabled:
+                                  true, // Important for performance
+                            )
+                            : Container(
+                              color: Colors.grey[200],
+                              child: Center(
+                                child: Text(
+                                  "Aucun emplacement sélectionné.\nAppuyez pour choisir.",
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                  ),
+                ),
               ),
-            ),
-          ),
               SizedBox(height: 16),
 
               SizedBox(height: 16),
@@ -685,60 +597,98 @@ class _CreateEventPageState extends State<CreateEventView> {
     );
   }
 
-
-  
-Widget _buildLocationButton() {
-  return InkWell(
-    onTap: _openMapSelector,
-    borderRadius: BorderRadius.circular(12),
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.location_pin, size: 43, color: Colors.blue),
-          const SizedBox(width: 08),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  // Helper widget function to avoid code repetition
+  Widget _buildDatePickerField(
+    BuildContext context, {
+    required String label,
+    required DateTime? selectedDate,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 16)),
+        SizedBox(height: 8),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black38, width: 1),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            width: MediaQuery.of(context).size.width * 0.9,
+            child: Row(
               children: [
-                const Text(
-                  "Choisir un emplacement sur la carte",
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (latitude != null && longitude != null)
-                  Text(
-                    "Lat: $latitude, Lng: $longitude",
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
+                Icon(Icons.calendar_today_outlined, color: Colors.grey[700]),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    selectedDate != null
+                        ? _formatDate(
+                          selectedDate,
+                        ) // Pass the non-nullable DateTime here
+                        : 'Sélectionner',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color:
+                          selectedDate != null
+                              ? Colors.black87
+                              : Colors.grey[600],
                     ),
                   ),
+                ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLocationButton() {
+    return InkWell(
+      onTap: _openMapSelector,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.location_pin, size: 43, color: Colors.blue),
+            const SizedBox(width: 08),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Choisir un emplacement sur la carte",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  if (latitude != null && longitude != null)
+                    Text(
+                      "Lat: $latitude, Lng: $longitude",
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
-
-}
-
-
-

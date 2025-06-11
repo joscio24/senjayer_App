@@ -6,6 +6,7 @@ import 'package:senjayer/api/api_services.dart';
 import 'package:senjayer/app/core/theme.dart';
 import 'package:senjayer/widgets/custom_button.dart';
 import 'package:senjayer/widgets/custom_cards.dart';
+import 'package:senjayer/widgets/custom_loader.dart';
 import 'package:senjayer/widgets/custom_textfield.dart';
 import 'package:intl/intl.dart';
 
@@ -20,6 +21,7 @@ class _InvitationViewState extends State<InvitationView> {
   // final email_controller = TextEditingController();
 
   late List<Map<String, dynamic>> invitations = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -78,6 +80,7 @@ class _InvitationViewState extends State<InvitationView> {
             };
           }).toList();
 
+        isLoading = false;
       // print("Invitations: $invitations");
     });
   }
@@ -198,36 +201,42 @@ class _InvitationViewState extends State<InvitationView> {
 
               SizedBox(height: 20),
 
-              Column(
-                children: invitations.isEmpty
-                    ? [ // If the invitations list is empty, show the "Aucune invitations reçues" text
-                  Center(
-                    child: Text(
-                      "Aucune invitations reçues",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
+              isLoading
+                  ? const CustomLoader()
+                  : Column(
+                    children:
+                        invitations.isEmpty
+                            ? [
+                              // If the invitations list is empty, show the "Aucune invitations reçues" text
+                              Center(
+                                child: Text(
+                                  "Aucune invitations reçues",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ]
+                            : invitations.map((invitation) {
+                              return GestureDetector(
+                                onTap: () {
+                                  Get.toNamed(
+                                    '/invitation_details',
+                                    arguments: invitation,
+                                  );
+                                },
+                                child: InvitationCard(
+                                  evimage: invitation["image"]!,
+                                  title: invitation["title"]!,
+                                  location: invitation["location"]!,
+                                  dateTime: invitation["dateTime"]!,
+                                  description: invitation["description"]!,
+                                  endDate: invitation["endDate"]!,
+                                ),
+                              );
+                            }).toList(),
                   ),
-                ]
-                    : invitations.map((invitation) {
-                  return GestureDetector(
-                    onTap: () {
-                      Get.toNamed(
-                        '/invitation_details',
-                        arguments: invitation,
-                      );
-                    },
-                    child: InvitationCard(
-                      evimage: invitation["image"]!,
-                      title: invitation["title"]!,
-                      location: invitation["location"]!,
-                      dateTime: invitation["dateTime"]!,
-                      description: invitation["description"]!,
-                      endDate: invitation["endDate"]!,
-                    ),
-                  );
-                }).toList(),
-              )
-
 
               // Logo
             ],

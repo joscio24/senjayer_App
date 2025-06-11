@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:senjayer/app/core/theme.dart';
 
 class ThreeBarLoader extends StatefulWidget {
   const ThreeBarLoader({super.key});
@@ -21,7 +22,7 @@ class _ThreeBarLoaderState extends State<ThreeBarLoader>
       duration: Duration(milliseconds: 800),
     )..repeat(reverse: true);
 
-    _animations = List.generate(3, (index) {
+    _animations = List.generate(5, (index) {
       return Tween<double>(begin: 20, end: 50).animate(
         CurvedAnimation(
           parent: _controller,
@@ -59,25 +60,49 @@ class _ThreeBarLoaderState extends State<ThreeBarLoader>
               ),
             ),
             SizedBox(height: 20),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.center,
+            //   children: List.generate(3, (index) {
+            //     return AnimatedBuilder(
+            //       animation: _controller,
+            //       builder: (context, child) {
+            //         return Container(
+            //           margin: EdgeInsets.symmetric(horizontal: 8),
+            //           width: 12,
+            //           height: _animations[index].value,
+            //           decoration: BoxDecoration(
+            //             color: const Color.fromARGB(255, 238, 238, 238),
+            //             borderRadius: BorderRadius.circular(5),
+            //           ),
+            //         );
+            //       },
+            //     );
+            //   }),
+            // ),
+
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (index) {
-                return AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    return Container(
-                      margin: EdgeInsets.symmetric(horizontal: 8),
-                      width: 12,
-                      height: _animations[index].value,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 238, 238, 238),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    );
-                  },
-                );
-              }),
-            ),
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              return AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return Container(
+                    margin: EdgeInsets.symmetric(horizontal: 8),
+                    width: index == 3? 20: 12,
+                    height: _animations[index].value,
+                    decoration: BoxDecoration(
+                      color:
+                          index == 3
+                              ? const Color.fromARGB(255, 255, 153, 0) // Change second-to-last bar color
+                              :  appTheme.appWhite,
+                      borderRadius: index == 3 ? BorderRadius.circular(25): BorderRadius.circular(5),
+                    ),
+                  );
+                },
+              );
+            }),
+          ),
+        
           ],
         ),
       ),

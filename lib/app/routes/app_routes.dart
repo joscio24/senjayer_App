@@ -29,5 +29,6 @@ abstract class AppRoutes {
   static const FAQ = '/faq';
   static const ABOUT = '/about';
   static const DELETE_ACCOUNT = '/delete-account';
+  static const CONTROL = '/control';
   // user_events
 }
