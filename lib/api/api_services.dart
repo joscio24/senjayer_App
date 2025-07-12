@@ -785,7 +785,7 @@ class ApiService {
       Response response = await _dio.get(
         url,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
-      );
+      ); 
 
       if (response.statusCode == 200) {
         return {

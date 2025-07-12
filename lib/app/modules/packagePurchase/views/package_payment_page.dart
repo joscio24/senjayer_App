@@ -486,11 +486,17 @@ class _PaymentPageState extends State<PaymentPage>
               const SizedBox(height: 12),
               TextFormField(
                 controller: mobileNumber,
-                decoration: _inputDecoration("Numéro Mobile Money"),
+                decoration: InputDecoration(
+                  labelText: "Numéro Mobile Money",
+                  hintText: "22901XXXXXXXX",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
                 keyboardType: TextInputType.phone,
                 validator: (value) {
                   if (selectedNetwork.isEmpty) return "Sélectionnez un réseau";
-                  if (value == null || value.length < 8)
+                  if (value == null || value.length < 11)
                     return "Numéro invalide";
                   return null;
                 },

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:senjayer/app/core/theme.dart';
+import 'package:senjayer/app/modules/events/views/addticket.dart';
+import 'package:senjayer/app/modules/events/views/create_invitation.dart';
+import 'package:senjayer/app/modules/events/views/invitation_liste.dart';
 import 'package:senjayer/widgets/custom_addtocalendar.dart';
 import 'package:senjayer/widgets/custom_button.dart';
 import 'package:senjayer/widgets/custom_cards.dart';
@@ -15,7 +18,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../../../imageview/imageViewPage.dart';
 import '../../contactInvite/views/ListeContactsPage.dart';
-
+import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart';
 
 class EventDetailsView extends StatefulWidget {
@@ -88,47 +91,89 @@ class EventDetailsViewState extends State<EventDetailsView> {
   // String formattedDate = getFormattedDate();
   // List<String> dateParts = formattedDate.split(", ");
 
-  @override
-  Widget build(BuildContext context) {
-    void _addEventToCalendar() {
-      final dateTimeRange = invitation['dateTime'] as String;
-      final parts = dateTimeRange.split(
-        ' to ',
-      ); // Or whatever separator you have
+  Future<bool> _requestCalendarPermission() async {
+    var status = await Permission.calendarWriteOnly.status;
+    if (!status.isGranted) {
+      status = await Permission.calendarWriteOnly.request();
+    }
+    return status.isGranted;
+  }
 
-      if (parts.length == 2) {
-        DateTime startDate = DateTime.parse(parts[0]);
-        DateTime endDate = DateTime.parse(parts[1]);
-
-        final event = Event(
-          title: invitation["title"] ?? 'Événement',
-          description: '',
-          location: invitation["location"] ?? '',
-          startDate: startDate,
-          endDate: endDate,
-          allDay: false,
-        );
-
-        Add2Calendar.addEvent2Cal(event).then((success) {
-          if (success) {
-            showCustomAddSuccessDialog(
-              context,
-              "Ajouté avec succès au calendrier",
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('L’ajout au calendrier a échoué')),
-            );
-          }
-        });
-      } else {
-        // fallback if format unexpected
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Format de date invalide')));
-      }
+  void _addEventToCalendar(BuildContext context) async {
+    bool granted = await _requestCalendarPermission();
+    if (!granted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Permission calendrier refusée')));
+      return;
     }
 
+    final dateTimeRange = invitation['dateTime'] as String? ?? '';
+
+    try {
+      final parts = dateTimeRange.split(',');
+      if (parts.length != 2) throw FormatException('Invalid date format');
+
+      final dateStr = parts[0].trim(); // e.g. "11 Jun 2025"
+      final timeRangeStr = parts[1].trim(); // e.g. "1:23-1:23"
+
+      final timeParts = timeRangeStr.split('-');
+      if (timeParts.length != 2) throw FormatException('Invalid time format');
+
+      final startTimeStr = timeParts[0].trim(); // e.g. "1:23"
+      final endTimeStr = timeParts[1].trim(); // e.g. "1:23"
+
+      final date = DateFormat("d MMM yyyy").parse(dateStr);
+      final startTime = DateFormat("H:mm").parse(startTimeStr);
+      final endTime = DateFormat("H:mm").parse(endTimeStr);
+
+      final startDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        startTime.hour,
+        startTime.minute,
+      );
+      final endDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        endTime.hour,
+        endTime.minute,
+      );
+
+      final event = Event(
+        title: invitation["title"] ?? 'Événement',
+        description: '',
+        location: invitation["location"] ?? '',
+        startDate: startDateTime,
+        endDate: endDateTime,
+        allDay: false,
+      );
+
+      Add2Calendar.addEvent2Cal(event).then((success) {
+        print("Add2Calendar success? $success");
+        if (success) {
+          showCustomAddSuccessDialog(
+            context,
+            "Ajouté avec succès au calendrier",
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('L’ajout au calendrier a échoué')),
+          );
+        }
+      });
+    } catch (e) {
+      print('Error parsing date/time: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Format de date invalide')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     String transformToFirebaseUrl(String url) {
       if (url.startsWith('https://storage.cloud.google.com/')) {
         final uri = Uri.parse(url);
@@ -383,7 +428,9 @@ class EventDetailsViewState extends State<EventDetailsView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     OutlinedButton(
-                      onPressed: _addEventToCalendar,
+                      onPressed: () {
+                        _addEventToCalendar(context);
+                      },
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: appTheme.appViolet, width: 2),
                         shape: RoundedRectangleBorder(
@@ -495,7 +542,14 @@ class EventDetailsViewState extends State<EventDetailsView> {
                 padding: const EdgeInsets.all(20.0),
                 child: MainButtons(
                   text: "Plus de détails",
-                  onPressed: () => {},
+                  onPressed:
+                      () => {
+                        Get.to(
+                          () => AddTicketPage(
+                            eventId: int.parse(invitation['id'].toString()),
+                          ),
+                        ),
+                      },
                 ),
               ),
             ],
@@ -507,6 +561,7 @@ class EventDetailsViewState extends State<EventDetailsView> {
         context,
         invitation['id'].toString(),
         invitation['description'].toString(),
+        invitation['firstTicket']?['id'].toString() ?? '0',
       ),
       // bottomNavigationBar: buildBottomNavigationInviteAccept(),
       // bottomNavigationBar: buildBottomNavigationInviteReject(),
@@ -580,7 +635,14 @@ Widget buildBottomNavigationInviteContact(
   BuildContext context,
   String id,
   String description,
+  String ticketId,
 ) {
+  void showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
   return Container(
     padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
     decoration: BoxDecoration(
@@ -596,13 +658,15 @@ Widget buildBottomNavigationInviteContact(
         InkWell(
           onTap:
               () => {
-                Get.toNamed(
-                  "/inviteContact",
-                  arguments: {
-                    "id": id.toString(),
-                    "description": description.toString(),
-                  },
-                ),
+                // Get.toNamed(
+                //   "/inviteContact",
+                //   arguments: {
+                //     "id": id.toString(),
+                //     "description": description.toString(),
+                //   },
+                // ),
+
+                Get.to(() => InvitationListPage(eventId: id, ticketId: ticketId,))
               },
           child: _buildButton(
             "Invitations",
@@ -618,13 +682,28 @@ Widget buildBottomNavigationInviteContact(
         InkWell(
           onTap:
               () => {
-                Get.toNamed(
-                  "/inviteContact",
-                  arguments: {
-                    "id": id.toString(),
-                    "description": description.toString(),
+                // Get.toNamed(
+                //   "/inviteContact",
+                //   arguments: {
+                //     "id": id.toString(),
+                //     "description": description.toString(),
+                //   },
+                // ),
+                if (ticketId == '0')
+                  {
+                    showError(context, "Créez un ticket d'abord pour ajouter des invitations\n clickez sur ''plus de détails'' et créez un ticket")
+                  }
+                else
+                  {
+                    Get.to(
+                      () => InviteDialogExample(
+                        eventId: int.parse(id),
+                        ticketId: int.parse(ticketId),
+                      ),
+                    ),
                   },
-                ),
+
+                // Get.to(() => InvitationListPage(eventId: id))
               },
           child: _buildButton(
             "Inviter mes contacts",

@@ -32,7 +32,6 @@ class _EventsViewState extends State<EventsView> {
     _loadUserEvents();
   }
 
-  
   Future<void> _loadUserEvents() async {
     ApiService apiService = ApiService();
 
@@ -56,6 +55,9 @@ class _EventsViewState extends State<EventsView> {
     setState(() {
       invitations =
           filteredEvents.map((event) {
+            final tickets = (event["tickets"] as List?) ?? [];
+
+            final firstTicket = tickets.isNotEmpty ? tickets.first : null;
             return {
               "id": event["id"],
               "image":
@@ -86,6 +88,35 @@ class _EventsViewState extends State<EventsView> {
               "ticketAvailable":
                   event["ticket_available"]?.toString() ??
                   "false", // Optional: ticket availability
+              // ✅ Add parsed ticket data
+              "tickets":
+                  (event["tickets"] as List?)?.map((ticket) {
+                    return {
+                      "id": ticket["id"],
+                      "name": ticket["name"] ?? "No name",
+                      "description": ticket["description"] ?? "",
+                      "image_url": ticket["image_url"],
+                      "quantity": ticket["quantity"],
+                      "left": ticket["left"],
+                      "price": ticket["price"],
+                      "validity_days": ticket["validity_days"],
+                    };
+                  }).toList() ??
+                  [],
+
+              "firstTicket":
+                  firstTicket != null
+                      ? {
+                        "id": firstTicket["id"],
+                        "name": firstTicket["name"] ?? "No name",
+                        "description": firstTicket["description"] ?? "",
+                        "image_url": firstTicket["image_url"],
+                        "quantity": firstTicket["quantity"],
+                        "left": firstTicket["left"],
+                        "price": firstTicket["price"],
+                        "validity_days": firstTicket["validity_days"],
+                      }
+                      : null,
             };
           }).toList();
       isLoading = false;
