@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:senjayer/widgets/custom_button.dart';
+import 'package:senjayer/widgets/custom_loader.dart';
 import '../../../../widgets/custom_textfield.dart';
 import '../controllers/edit_profile_controller.dart';
 
@@ -13,7 +14,7 @@ class EditProfilePage extends GetView<EditProfileController> {
       appBar: AppBar(title: Text("Éditer le profil")),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return Center(child: CircularProgressIndicator());
+          return Center(child: CustomLoader());
         }
 
         return Padding(
@@ -57,11 +58,7 @@ class EditProfilePage extends GetView<EditProfileController> {
                     controller: controller.firstName,
                   ),
                   SizedBox(height: 10),
-                  CustomTextField(
-                    labelText: "Email",
-                    controller: controller.email,
-                    inputType: TextInputType.emailAddress,
-                  ),
+                  
                   SizedBox(height: 10),
                   CustomTextField(
                     labelText: "Téléphone",

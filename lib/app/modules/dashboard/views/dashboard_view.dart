@@ -8,6 +8,8 @@ import 'package:get/get.dart';
 import 'package:senjayer/api/api_services.dart';
 import 'package:senjayer/app/core/theme.dart';
 import 'package:senjayer/app/modules/auth/views/login_view.dart';
+import 'package:senjayer/utils/toot_icon.dart';
+import 'package:senjayer/utils/tutorial_helper.dart';
 import 'package:senjayer/widgets/custom_button.dart';
 import 'package:senjayer/widgets/custom_textfield.dart';
 import 'package:intl/intl.dart';
@@ -19,8 +21,6 @@ import 'package:sqflite/sqflite.dart';
 import '../../contactInvite/views/contactList.dart';
 import '../../events/views/events_view.dart';
 import '../../invitations/views/invitation_list_page.dart';
-
-import 'package:path/path.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -43,6 +43,16 @@ class _DashboardViewState extends State {
   int totalInvitations = 0;
   late List<Map<String, dynamic>> invitations = [];
   late Timer _timer;
+  // ✅ Safely declared
+
+  final GlobalKey invitationRecue = GlobalKey();
+  final GlobalKey mesEvents = GlobalKey();
+  final GlobalKey monProfil = GlobalKey();
+  final GlobalKey keyCreate = GlobalKey();
+  final GlobalKey keyControle = GlobalKey();
+  final GlobalKey keyScan = GlobalKey();
+
+  bool _showInfoButton = false;
 
   @override
   void initState() {
@@ -51,13 +61,28 @@ class _DashboardViewState extends State {
     _loadUserData();
     _loadUserEventsInvited();
     _loadUserEvents();
-    _loadTotalInvitations();
+
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   showAppTutorial(
+    //     context: context,
+    //     targets: [ keyCreate, mesEvents, invitationRecue, keyControle, keyScan],
+    //     descriptions: [
+    //       "Cliquez ici pour créer un événement.",
+    //       "Cliquez ici pour voir vos évènements.",
+    //       "Liste des évènements sur lesquels vous êtes invités",
+    //       // "Cliquez ici pour créer un événement.",
+    //       "Accédez à la section de contrôle.",
+    //       "Scannez les billets avec cette option.",
+    //     ],
+    //   );
+    // });
+
+    _checkFirstTimeAndShowTutorial();
 
     _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       _loadUserData();
       _loadUserEventsInvited();
       _loadUserEvents();
-      _loadTotalInvitations();
     });
   }
 
@@ -66,6 +91,36 @@ class _DashboardViewState extends State {
     // Cancel the timer when the widget is disposed to avoid memory leaks
     _timer.cancel();
     super.dispose();
+  }
+
+  Future<void> _checkFirstTimeAndShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool("hasSeenTutorial") ?? false;
+
+    if (!hasSeenTutorial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showTutorial();
+      });
+      prefs.setBool("hasSeenTutorial", true);
+    } else {
+      setState(() => _showInfoButton = true);
+    }
+  }
+
+  void _showTutorial() {
+    showAppTutorial(
+      context: context,
+      targets: [keyCreate, mesEvents, invitationRecue, keyControle, keyScan],
+      descriptions: [
+        "Cliquez ici pour créer un événement.",
+        "Cliquez ici pour voir vos évènements.",
+        "Liste des évènements sur lesquels vous êtes invités",
+        "Accédez à la section de contrôle.",
+        "Scannez les billets avec cette option.",
+      ],
+      onFinish: () => setState(() => _showInfoButton = true),
+      onSkip: () => setState(() => _showInfoButton = true),
+    );
   }
 
   Future<void> _loadUserData() async {
@@ -93,11 +148,11 @@ class _DashboardViewState extends State {
         (eventsResponse["events"] is List)
             ? eventsResponse["events"] // Direct list
             : (eventsResponse["events"]["data"] ?? []);
- 
-    List filteredEvents = eventList.where((event) {
-      return event["private"] == 1;
 
-    }).toList();
+    List filteredEvents =
+        eventList.where((event) {
+          return event["private"] == 1;
+        }).toList();
 
     setState(() {
       inviteCount = filteredEvents.length.toString();
@@ -152,10 +207,10 @@ class _DashboardViewState extends State {
         (eventsResponse["events"] is List)
             ? eventsResponse["events"] // Direct list
             : (eventsResponse["events"]["data"] ?? []);
-    List filteredEvents = eventList.where((event) {
-      return event["private"] == 1;
-
-    }).toList();
+    List filteredEvents =
+        eventList.where((event) {
+          return event["private"] == 1;
+        }).toList();
 
     setState(() {
       eventCount = filteredEvents.length.toString();
@@ -197,12 +252,12 @@ class _DashboardViewState extends State {
     });
   }
 
-  Future<void> _loadTotalInvitations() async {
-    int count = await _getTotalInvitationCount();
-    setState(() {
-      totalInvitations = count;
-    });
-  }
+  // Future<void> _loadTotalInvitations() async {
+  //   int count = await _getTotalInvitationCount();
+  //   setState(() {
+  //     totalInvitations = count;
+  //   });
+  // }
 
   // Future<int> _getTotalInvitationCount() async {
   //   final dbPath = await getDatabasesPath();
@@ -218,38 +273,6 @@ class _DashboardViewState extends State {
   //   // Return the total count
   //   return totalInvitations.isNotEmpty ? totalInvitations.first['total_invites'] ?? 0 : 0;
   // }
-
-  Future<int> _getTotalInvitationCount() async {
-  final dbPath = await getDatabasesPath();
-  final path = join(dbPath, 'contacts_event.db');
-
-  // Check if the database file exists
-  final dbExists = await databaseExists(path);
-  if (!dbExists) {
-    return 0; // Skip fetch if DB doesn't exist
-  }
-
-  final database = await openDatabase(path);
-
-  // Check if 'invitations' table exists
-  final tableCheck = await database.rawQuery('''
-    SELECT name FROM sqlite_master WHERE type='table' AND name='invitations';
-  ''');
-
-  if (tableCheck.isEmpty) {
-    return 0; // Skip fetch if table doesn't exist
-  }
-
-  // Table exists, run the actual count query
-  final totalInvitations = await database.rawQuery('''
-    SELECT COUNT(*) as total_invites FROM invitations;
-  ''');
-
-  return totalInvitations.isNotEmpty
-      ? (totalInvitations.first['total_invites'] as int? ?? 0)
-      : 0;
-}
-
 
   // Format date from API (e.g., "2024-04-01T17:00:00.000000Z" → "01 April 2024, 17:00")
   String _formatDate(String? startDateStr, String? endDateStr) {
@@ -364,7 +387,13 @@ class _DashboardViewState extends State {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                title: Text("Compte", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                                title: Text(
+                                  "Compte",
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                                 content: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -379,7 +408,9 @@ class _DashboardViewState extends State {
                                     ),
                                     Container(
                                       constraints: BoxConstraints(
-                                        maxWidth: MediaQuery.of(context).size.width * 0.6,
+                                        maxWidth:
+                                            MediaQuery.of(context).size.width *
+                                            0.6,
                                       ),
                                       child: SingleChildScrollView(
                                         scrollDirection: Axis.horizontal,
@@ -406,7 +437,9 @@ class _DashboardViewState extends State {
                                       ),
                                       child: Text(
                                         "Se déconnecter",
-                                        style: TextStyle(color: appTheme.appWhite),
+                                        style: TextStyle(
+                                          color: appTheme.appWhite,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -422,7 +455,8 @@ class _DashboardViewState extends State {
                             SizedBox(width: 10),
                             Container(
                               constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.55,
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.55,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,7 +469,9 @@ class _DashboardViewState extends State {
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
                                     child: SingleChildScrollView(
                                       scrollDirection: Axis.horizontal,
                                       child: Text(
@@ -506,23 +542,22 @@ class _DashboardViewState extends State {
                   ),
                 ),
 
-
-
-
                 // Date
                 SizedBox(height: 40),
 
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 0), // Small padding, no extra spacing
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 0,
+                  ), // Small padding, no extra spacing
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Flexible(
                         fit: FlexFit.loose,
                         child: Text(
                           dateParts[0], // e.g., "Monday"
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: 24,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
                           ),
@@ -536,7 +571,7 @@ class _DashboardViewState extends State {
                         child: Text(
                           "${dayParts[0]} ${dayParts[1]} ${dayParts[2]}", // e.g., "01 January 2025"
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: 24,
                             fontWeight: FontWeight.w600,
                             color: Colors.purple,
                           ),
@@ -553,6 +588,7 @@ class _DashboardViewState extends State {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     GestureDetector(
+                      key: invitationRecue,
                       onTap: () => {Get.toNamed('/invitations')},
                       child: Container(
                         padding: EdgeInsets.all(16),
@@ -611,7 +647,7 @@ class _DashboardViewState extends State {
                     ),
 
                     GestureDetector(
-                      onTap: (){
+                      onTap: () {
                         Get.to(() => EventsViewInvites());
                       },
                       child: Container(
@@ -678,6 +714,7 @@ class _DashboardViewState extends State {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     GestureDetector(
+                      key: mesEvents,
                       onTap: () => {Get.toNamed("/user_events")},
                       child: Container(
                         padding: EdgeInsets.all(16),
@@ -795,10 +832,8 @@ class _DashboardViewState extends State {
                     ),
                   ],
                 ),
-
-
-
-                SizedBox(height: 20),
+                
+                SizedBox(height: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -830,7 +865,7 @@ class _DashboardViewState extends State {
                         Container(
                           height: 4,
                           width:
-                          MediaQuery.of(context).size.width *
+                              MediaQuery.of(context).size.width *
                               0.5, // Adjust thickness of the underline
                           color: appTheme.appViolet,
                           // padding: EdgeInsets.all(1), // Underline color
@@ -873,7 +908,112 @@ class _DashboardViewState extends State {
           ),
         ),
       ),
+      floatingActionButton: _showInfoButton ?
+                  TutorialLauncherButton(onPressed: _showTutorial) : null,
       bottomNavigationBar: buildBottomNavigation(),
+    );
+  }
+
+  Widget _buildEventActions() {
+    final items = [
+      {
+        'label': 'Créer',
+        'key': keyCreate,
+        'icon': Icons.add_circle,
+        'color': Colors.orange,
+        'route': '/user_events_packs', // default fallback
+        'checkSubscription': true,
+      },
+      {
+        'label': 'Contrôle',
+        'key': keyControle,
+        'icon': Icons.verified_user,
+        'color': Colors.teal,
+        'route': '/control',
+        'checkSubscription': false,
+      },
+      {
+        'label': 'Scan',
+        'key': keyScan,
+        'icon': Icons.qr_code_scanner,
+        'color': Colors.indigo,
+        'route': '/scan',
+        'checkSubscription': false,
+      },
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: GridView.count(
+        crossAxisCount: 3,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.85,
+        children:
+            items.map((item) {
+              return GestureDetector(
+                key: item['key'] as GlobalKey,
+                onTap: () async {
+                  if (item['checkSubscription'] == true) {
+                    final prefs = await SharedPreferences.getInstance();
+                    final hasPremium = prefs.getBool('premium_paid') ?? false;
+                    final hasFree = prefs.getInt('event_limit') != null;
+
+                    if (hasPremium || hasFree) {
+                      Get.toNamed('/user_events_create'); // Go to create page
+                    } else {
+                      Get.toNamed(
+                        item['route'] as String,
+                      ); // Go to /user_events_packs
+                    }
+                  } else {
+                    Get.toNamed(item['route'] as String);
+                  }
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white,
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundColor: (item['color'] as Color).withOpacity(
+                          0.1,
+                        ),
+                        child: Icon(
+                          item['icon'] as IconData,
+                          color: item['color'] as Color,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        item['label'] as String,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+      ),
     );
   }
 }
@@ -997,10 +1137,7 @@ Widget buildBottomNavigation() {
           child: _buildNavItem("assets/home_icon.png", "Accueil"),
         ),
         InkWell(
-          onTap:
-              () => {
-                Get.to(() => ListeContactsReseauPage())
-              },
+          onTap: () => {Get.to(() => ListeContactsReseauPage())},
           child: _buildNavItem("assets/contacts_icon.png", "Mon réseau"),
         ),
       ],
@@ -1041,93 +1178,5 @@ Widget _buildNavItem(String iconPath, String label) {
         ),
       ),
     ],
-  );
-}
-
-Widget _buildEventActions() {
-  final items = [
-    {
-      'label': 'Créer',
-      'icon': Icons.add_circle,
-      'color': Colors.orange,
-      'route': '/user_events_packs', // default fallback
-      'checkSubscription': true,
-    },
-    {
-      'label': 'Contrôle',
-      'icon': Icons.verified_user,
-      'color': Colors.teal,
-      'route': '/control',
-      'checkSubscription': false,
-    },
-    {
-      'label': 'Scan',
-      'icon': Icons.qr_code_scanner,
-      'color': Colors.indigo,
-      'route': '/scan',
-      'checkSubscription': false,
-    },
-  ];
-
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 0),
-    child: GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 0.85,
-      children: items.map((item) {
-        return GestureDetector(
-          onTap: () async {
-            if (item['checkSubscription'] == true) {
-              final prefs = await SharedPreferences.getInstance();
-              final hasPremium = prefs.getBool('premium_paid') ?? false;
-              final hasFree = prefs.getInt('event_limit') != null;
-
-              if (hasPremium || hasFree) {
-                Get.toNamed('/user_events_create'); // Go to create page
-              } else {
-                Get.toNamed(item['route'] as String); // Go to /user_events_packs
-              }
-            } else {
-              Get.toNamed(item['route'] as String);
-            }
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: (item['color'] as Color).withOpacity(0.1),
-                  child: Icon(item['icon'] as IconData, color: item['color'] as Color),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  item['label'] as String,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    ),
   );
 }

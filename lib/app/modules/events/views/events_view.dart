@@ -10,6 +10,7 @@ import 'package:senjayer/widgets/custom_loader.dart';
 import 'package:senjayer/widgets/custom_textfield.dart';
 import 'package:intl/intl.dart';
 import 'package:add_2_calendar/add_2_calendar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../contactInvite/views/contactList.dart';
 
@@ -320,7 +321,20 @@ class _EventsViewState extends State<EventsView> {
       bottomNavigationBar: buildBottomNavigation(),
       floatingActionButton: FloatingActionButton(
         onPressed:
-            () => {Get.toNamed("/user_events_packs")}, // Icon for the FAB
+            () async {
+              
+              final prefs = await SharedPreferences.getInstance();
+                    final hasPremium = prefs.getBool('premium_paid') ?? false;
+                    final hasFree = prefs.getInt('event_limit') != null;
+
+                    if (hasPremium || hasFree) {
+                      Get.toNamed('/user_events_create'); // Go to create page
+                    } else {
+                      Get.toNamed("/user_events_packs"); // Go to /user_events_packs
+                    }
+              
+              
+              }, // Icon for the FAB
         tooltip: 'Add Event',
         child: Icon(Icons.add), // Tooltip when hovering or long pressing
       ),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:senjayer/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -10,7 +11,7 @@ class Invitation {
   final String lastName;
   final String email;
   final String phone;
-  final int status;
+  final int invite_response;
 
   Invitation({
     required this.id,
@@ -18,7 +19,7 @@ class Invitation {
     required this.lastName,
     required this.email,
     required this.phone,
-    required this.status,
+    required this.invite_response,
   });
 
   factory Invitation.fromJson(Map<String, dynamic> json) {
@@ -28,7 +29,7 @@ class Invitation {
       lastName: json['last_name'],
       email: json['email'],
       phone: json['phone'],
-      status: json['status'] ?? 0,
+      invite_response: json['invite_response'] ?? 0,
     );
   }
 
@@ -38,14 +39,13 @@ class Invitation {
     'last_name': lastName,
     'email': email,
     'phone': phone,
-    'status': status,
+    'invite_response': invite_response,
   };
 }
 
 class InvitationListPage extends StatefulWidget {
   final String eventId;
-  final String ticketId;
-  const InvitationListPage({super.key, required this.eventId, required this.ticketId});
+  const InvitationListPage({super.key, required this.eventId});
 
   @override
   State<InvitationListPage> createState() => _InvitationListPageState();
@@ -114,7 +114,7 @@ class _InvitationListPageState extends State<InvitationListPage> {
       ),
       body:
           _isLoading
-              ? Center(child: CircularProgressIndicator())
+              ? Center(child: const CustomLoader())
               : _invitations.isEmpty
               ? Center(child: Text("Aucune invitation trouvée."))
               : ListView.builder(
@@ -135,10 +135,10 @@ class _InvitationListPageState extends State<InvitationListPage> {
                       ),
                       trailing: Chip(
                         label: Text(
-                          _getStatusText(inv.status),
+                          _getStatusText(inv.invite_response),
                           style: TextStyle(fontSize: 12),
                         ),
-                        backgroundColor: _getStatusColor(inv.status),
+                        backgroundColor: _getStatusColor(inv.invite_response),
                       ),
                     ),
                   );
@@ -151,9 +151,9 @@ class _InvitationListPageState extends State<InvitationListPage> {
     switch (status) {
       case 0:
         return "En attente";
-      case 1:
-        return "Accepté";
       case 2:
+        return "Accepté";
+      case 1:
         return "Rejeté";
       default:
         return "Inconnu";
@@ -164,9 +164,9 @@ class _InvitationListPageState extends State<InvitationListPage> {
     switch (status) {
       case 0:
         return Colors.grey.shade300;
-      case 1:
-        return Colors.green.shade200;
       case 2:
+        return Colors.green.shade200;
+      case 1:
         return Colors.red.shade200;
       default:
         return Colors.blueGrey.shade200;

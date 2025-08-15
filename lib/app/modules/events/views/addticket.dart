@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:senjayer/app/modules/events/views/events_view.dart';
+import 'package:senjayer/widgets/custom_button.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,7 +21,7 @@ class _AddTicketPageState extends State<AddTicketPage> {
 
   String _name = '';
   String _description = '';
-  String? _imageUrl;
+  String? _imageUrl; 
   int? _quantity;
   double? _price;
   int? _validityDays;
@@ -39,9 +42,7 @@ class _AddTicketPageState extends State<AddTicketPage> {
       'description': _description,
       if (_imageUrl != null && _imageUrl!.isNotEmpty) 'image_url': _imageUrl,
       'quantity': _quantity,
-      'price':
-          (_price! * 100)
-              .toInt(), // Assuming price in cents if API expects integer
+      'price': 0, 
       'validity_days': _validityDays,
     };
 
@@ -64,7 +65,7 @@ class _AddTicketPageState extends State<AddTicketPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Ticket created successfully!')));
-        Navigator.of(context).pop(true); // Return success
+       Get.to(() => EventsView()); // Return success
       } else {
         final error = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -106,7 +107,7 @@ class _AddTicketPageState extends State<AddTicketPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Add Ticket for Event #${widget.eventId}')),
+      appBar: AppBar(title: Text('Ajouter un ticket')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child:
@@ -155,9 +156,12 @@ class _AddTicketPageState extends State<AddTicketPage> {
                         onSaved: (val) => _validityDays = int.tryParse(val!),
                       ),
                       SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: _submitTicket,
-                        child: Text('Create Ticket'),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: MainButtons(
+                          onPressed: _submitTicket,
+                          text:'Create Ticket',
+                        ),
                       ),
                     ],
                   ),

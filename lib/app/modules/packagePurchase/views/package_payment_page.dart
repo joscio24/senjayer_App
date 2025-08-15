@@ -201,7 +201,14 @@ class _PaymentPageState extends State<PaymentPage>
     } catch (e) {
       setState(() => isLoading = false);
       print("Error in _confirmPayment: $e");
-      Get.snackbar("Erreur", "Une erreur est survenue : $e");
+      Get.snackbar("Erreur", 
+ backgroundColor: Colors.red.shade600,
+  colorText: Colors.white,
+  snackPosition: SnackPosition.BOTTOM,
+  margin: const EdgeInsets.all(16),
+  borderRadius: 8,
+  //duration: Duration(seconds: 3),
+ "Une erreur est survenue : $e");
     }
   }
 
@@ -218,7 +225,14 @@ class _PaymentPageState extends State<PaymentPage>
   //   if (isValid) {
   //     _confirmPayment();
   //   } else {
-  //     Get.snackbar("Erreur", "Veuillez compléter les champs requis.");
+  //     Get.snackbar("Erreur", 
+ //backgroundColor: Colors.red.shade600,
+ // colorText: Colors.white,
+  //snackPosition: SnackPosition.BOTTOM,
+  //margin: const EdgeInsets.all(16),
+  //borderRadius: 8,
+  //duration: Duration(seconds: 3),
+ //"Veuillez compléter les champs requis.");
   //   }
   // }
 
@@ -514,7 +528,7 @@ class _PaymentPageState extends State<PaymentPage>
     return GestureDetector(
       onTap: () => setState(() => selectedNetwork = name.toUpperCase()),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: Duration(milliseconds: 200),
         padding: const EdgeInsets.all(12),
         width: 100,
         decoration: BoxDecoration(

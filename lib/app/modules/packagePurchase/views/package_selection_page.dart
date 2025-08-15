@@ -99,9 +99,27 @@ class _PackageSelectionPageState extends State<PackageSelectionPage> {
     final response = await ApiService().postSubscription(payload);
 
     if (response != null && response["success"] == true) {
-      Get.snackbar("Succès", "Abonnement effectué avec succès");
+      Get.snackbar(
+        "Succès",
+        backgroundColor: Colors.green.shade600,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        //duration: Duration(seconds: 3),
+        "Abonnement effectué avec succès",
+      );
     } else {
-      Get.snackbar("Erreur", response?["message"] ?? "Échec de l’abonnement");
+      Get.snackbar(
+        "Erreur",
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        //duration: Duration(seconds: 3),
+        response?["message"] ?? "Échec de l’abonnement",
+      );
     }
   }
 
@@ -240,7 +258,14 @@ class _PackageSelectionPageState extends State<PackageSelectionPage> {
 
   // void _validateAndNavigate() async {
   //   if (selectedPackage.isEmpty) {
-  //     Get.snackbar("Erreur", "Veuillez sélectionner une offre");
+  //     Get.snackbar("Erreur",
+  //  backgroundColor: Colors.red.shade600,
+  //   colorText: Colors.white,
+  //   snackPosition: SnackPosition.BOTTOM,
+  //   margin: const EdgeInsets.all(16),
+  //   borderRadius: 8,
+  //   //duration: Duration(seconds: 3),
+  //  "Veuillez sélectionner une offre");
   //     return;
   //   }
 
@@ -267,13 +292,29 @@ class _PackageSelectionPageState extends State<PackageSelectionPage> {
   //       Get.toNamed("/user_events_packs_payment", arguments: selected);
   //     }
   //   } else {
-  //     Get.snackbar("Erreur", "Échec de la souscription");
+  //   //     Get.snackbar("Erreur",
+  //  backgroundColor: Colors.red.shade600,
+  //   colorText: Colors.white,
+  //   snackPosition: SnackPosition.BOTTOM,
+  //   margin: const EdgeInsets.all(16),
+  //   borderRadius: 8,
+  //   //duration: Duration(seconds: 3),
+  //  "Échec de la souscription");
   //   }
   // }
 
   void _validateAndNavigate() async {
     if (selectedPackage.isEmpty) {
-      Get.snackbar("Erreur", "Veuillez sélectionner une offre");
+      Get.snackbar(
+        "Erreur",
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        //duration: Duration(seconds: 3),
+        "Veuillez sélectionner une offre",
+      );
       return;
     }
 
@@ -315,7 +356,16 @@ class _PackageSelectionPageState extends State<PackageSelectionPage> {
         Get.toNamed("/user_events_packs_payment", arguments: selected);
       }
     } else {
-      Get.snackbar("Erreur", "Échec de la souscription");
+      Get.snackbar(
+        "Erreur",
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 8,
+        //duration: Duration(seconds: 3),
+        "Échec de la souscription",
+      );
     }
   }
 

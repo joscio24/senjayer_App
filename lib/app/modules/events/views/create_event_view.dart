@@ -166,10 +166,10 @@ class _CreateEventPageState extends State<CreateEventView> {
         addressController.text.isEmpty ||
         selectedCategoryId == null ||
         startDate == null ||
-        endDate == null ||
-        startTicket == null ||
-        endTicket == null ||
-        imageUrl == null || // Ensure image file is selected
+        // endDate == null ||
+        // startTicket == null ||
+        // endTicket == null ||
+        // imageUrl == null || // Ensure image file is selected
         longitude == null ||
         latitude == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -392,7 +392,7 @@ class _CreateEventPageState extends State<CreateEventView> {
                     child:
                         imageUrl == null
                             ? Image.asset(
-                              'assets/logo.png',
+                              'assets/logoY.jpg',
                               height: 150,
                               fit: BoxFit.cover,
                               alignment:
@@ -488,31 +488,31 @@ class _CreateEventPageState extends State<CreateEventView> {
                     selectedDate: endDate,
                     onTap: () => _selectDate(context, 'endDate'),
                   ),
-                  SizedBox(height: 20),
-                  _buildDatePickerField(
-                    context,
-                    label: "Début des ventes de billets :",
-                    selectedDate: startTicket,
-                    onTap: () => _selectDate(context, 'startTicket'),
-                  ),
-                  SizedBox(height: 20),
-                  _buildDatePickerField(
-                    context,
-                    label: "Fin des ventes de billets :",
-                    selectedDate: endTicket,
-                    onTap: () => _selectDate(context, 'endTicket'),
-                  ),
-                  SizedBox(height: 20),
+                  // SizedBox(height: 20),
+                  // _buildDatePickerField(
+                  //   context,
+                  //   label: "Début des ventes de billets :",
+                  //   selectedDate: startTicket,
+                  //   onTap: () => _selectDate(context, 'startTicket'),
+                  // ),
+                  // SizedBox(height: 20),
+                  // _buildDatePickerField(
+                  //   context,
+                  //   label: "Fin des ventes de billets :",
+                  //   selectedDate: endTicket,
+                  //   onTap: () => _selectDate(context, 'endTicket'),
+                  // ),
+                  // SizedBox(height: 20),
                 ],
               ),
 
-              SizedBox(height: 20),
-              CustomTextField(
-                labelText: 'Nombre de place',
-                controller: nbPlaceController,
-                hintText: 'nombre de place pour cet évenement',
-                inputType: TextInputType.number,
-              ),
+              // SizedBox(height: 20),
+              // CustomTextField(
+              //   labelText: 'Nombre de place',
+              //   controller: nbPlaceController,
+              //   hintText: 'nombre de place pour cet évenement',
+              //   inputType: TextInputType.number,
+              // ),
               SizedBox(height: 16),
 
               SizedBox(height: 16),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,8 @@ import 'package:senjayer/app/core/theme.dart';
 import 'package:senjayer/app/modules/events/views/addticket.dart';
 import 'package:senjayer/app/modules/events/views/create_invitation.dart';
 import 'package:senjayer/app/modules/events/views/invitation_liste.dart';
+import 'package:senjayer/utils/toot_icon.dart';
+import 'package:senjayer/utils/tutorial_helper.dart';
 import 'package:senjayer/widgets/custom_addtocalendar.dart';
 import 'package:senjayer/widgets/custom_button.dart';
 import 'package:senjayer/widgets/custom_cards.dart';
@@ -14,12 +18,13 @@ import 'package:senjayer/widgets/custom_reject_dialog.dart';
 import 'package:senjayer/widgets/custom_success_dialog.dart';
 import 'package:senjayer/widgets/custom_textfield.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../../imageview/imageViewPage.dart';
 import '../../contactInvite/views/ListeContactsPage.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:path/path.dart';
 
 class EventDetailsView extends StatefulWidget {
   @override
@@ -32,6 +37,8 @@ class EventDetailsViewState extends State<EventDetailsView> {
   @override
   void initState() {
     super.initState();
+
+    _checkFirstTimeAndShowTutorial();
   }
 
   String _formatDate(String? startDateStr, String? endDateStr) {
@@ -170,6 +177,44 @@ class EventDetailsViewState extends State<EventDetailsView> {
         context,
       ).showSnackBar(SnackBar(content: Text('Format de date invalide')));
     }
+  }
+
+  bool _showInfoButton = false;
+
+  final GlobalKey addToCalendar = GlobalKey();
+  final GlobalKey seeMap = GlobalKey();
+  final GlobalKey details = GlobalKey();
+  final GlobalKey invited = GlobalKey();
+  final GlobalKey inviteNew = GlobalKey();
+
+  Future<void> _checkFirstTimeAndShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool("hasSeenCreateTutorial") ?? false;
+
+    if (!hasSeenTutorial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showTutorial();
+      });
+      prefs.setBool("hasSeenCreateTutorial", true);
+    } else {
+      setState(() => _showInfoButton = true);
+    }
+  }
+
+  void _showTutorial() {
+    showAppTutorial(
+      context: context,
+      targets: [addToCalendar, seeMap, details, inviteNew, invited],
+      descriptions: [
+        "Cliquez ici pour ajouter l'évènement à votre google agenda.",
+        "Cliquez ici pour voir le lieux de l'évènement sur google maps.",
+        "Créer ici votre ticket pour l'évènement",
+        "Ensuite vous pouvez inviter ici vos contacts à votre évènement privé.",
+        "Consultez la liste de vos invités.",
+      ],
+      onFinish: () => setState(() => _showInfoButton = true),
+      onSkip: () => setState(() => _showInfoButton = true),
+    );
   }
 
   @override
@@ -428,6 +473,7 @@ class EventDetailsViewState extends State<EventDetailsView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     OutlinedButton(
+                      key: addToCalendar,
                       onPressed: () {
                         _addEventToCalendar(context);
                       },
@@ -448,6 +494,7 @@ class EventDetailsViewState extends State<EventDetailsView> {
                     ),
 
                     OutlinedButton(
+                      key: seeMap,
                       onPressed: () {
                         Get.toNamed(
                           '/invitation_detail_carte',
@@ -541,6 +588,7 @@ class EventDetailsViewState extends State<EventDetailsView> {
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: MainButtons(
+                  key: details,
                   text: "Plus de détails",
                   onPressed:
                       () => {
@@ -557,6 +605,10 @@ class EventDetailsViewState extends State<EventDetailsView> {
         ),
       ),
       // bottomNavigationBar: buildBottomNavigation(context),
+      floatingActionButton:
+          _showInfoButton
+              ? TutorialLauncherButton(onPressed: _showTutorial)
+              : null,
       bottomNavigationBar: buildBottomNavigationInviteContact(
         context,
         invitation['id'].toString(),
@@ -567,26 +619,254 @@ class EventDetailsViewState extends State<EventDetailsView> {
       // bottomNavigationBar: buildBottomNavigationInviteReject(),
     );
   }
-}
 
-Widget buildBottomNavigation(BuildContext context) {
-  return Container(
-    padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      boxShadow: [
-        BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        InkWell(
-          onTap:
-              () => {showCustomSuccessDialog(context, "Invitation acceptée")},
-          child: _buildButton(
-            "Accepter",
+  final String _name = '';
+  final String _description = '';
+  String? _imageUrl;
+  final int _validityDays = 100;
+
+  Future<void> _submitTicket() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Configuration de la page d'invitation en cours .... !"),
+      ),
+    );
+
+    final body = {
+      'event_id': invitation['id'].toString(),
+      'name': invitation['title'].toString(),
+      'description': _description,
+      if (_imageUrl != null && _imageUrl!.isNotEmpty) 'image_url': _imageUrl,
+      'quantity': 2,
+      'price': 0,
+      'validity_days': _validityDays,
+    };
+
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+    final url = Uri.parse('https://api.senjayer.com/api/v1/tickets');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final resData = jsonDecode(response.body);
+        final data = resData['data']; // ✅ unwrap "data"
+
+        print(data);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Configuration réussie !')),
+        );
+
+        Get.to(
+          () => ContactsInvitePage(
+            eventId: int.parse(data['event_id'].toString()), // ✅ from response
+            ticketId: int.parse(data['id'].toString()), // ✅ ticket ID
+          ),
+        );
+      } else {
+        final error = jsonDecode(response.body);
+        print(error);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Error: Une erreur s'est produite lors de la configuration de la page d'invitation",
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      setState(() {});
+    }
+  }
+
+  Widget buildBottomNavigation(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          InkWell(
+            onTap:
+                () => {showCustomSuccessDialog(context, "Invitation acceptée")},
+            child: _buildButton(
+              "Accepter",
+              Colors.green.shade100,
+              Colors.green.shade800,
+              Icon(
+                Icons.check_box_outlined,
+                color: Colors.green.shade800,
+                size: 20,
+              ),
+              null,
+            ),
+          ),
+          InkWell(
+            onTap:
+                () => {
+                  // showCustomErrorDialog(
+                  //   context,
+                  //   "Ajouté avec succès au calendrier",
+                  // ),
+                },
+            child: _buildButton(
+              "Peut être",
+              Colors.orange.shade100,
+              Colors.orange.shade800,
+              Icon(
+                Icons.timer_outlined,
+                color: Colors.orange.shade800,
+                size: 20,
+              ),
+              null,
+            ),
+          ),
+          InkWell(
+            onTap:
+                () => {
+                  showCustomErrorDialog(
+                    context,
+                    "Vous venez de refuser cette invitation",
+                  ),
+                },
+            child: _buildButton(
+              "Rejeter",
+              Colors.red.shade100,
+              Colors.red.shade800,
+              Icon(Icons.cancel_sharp, color: Colors.red.shade800, size: 20),
+              null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildBottomNavigationInviteContact(
+    BuildContext context,
+    String id,
+    String description,
+    String ticketId,
+  ) {
+    void showError(BuildContext context, String message) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          InkWell(
+            onTap:
+                () => {
+                  // Get.toNamed(
+                  //   "/inviteContact",
+                  //   arguments: {
+                  //     "id": id.toString(),
+                  //     "description": description.toString(),
+                  //   },
+                  // ),
+                  Get.to(() => InvitationListPage(eventId: id)),
+                },
+            child: _buildButton(
+              "Invitations",
+              Colors.green.shade100,
+              Colors.green.shade800,
+              Icon(
+                Icons.featured_play_list_sharp,
+                color: Colors.green.shade800,
+                size: 20,
+              ),
+              invited,
+            ),
+          ),
+          InkWell(
+            onTap:
+                () => {
+                  // Get.toNamed(
+                  //   "/inviteContact",
+                  //   arguments: {
+                  //     "id": id.toString(),
+                  //     "description": description.toString(),
+                  //   },
+                  // ),
+                  if (ticketId == '0')
+                    {_submitTicket()}
+                  else
+                    {
+                      Get.to(
+                        () => ContactsInvitePage(
+                          eventId: int.parse(id),
+                          ticketId: int.parse(ticketId),
+                        ),
+                      ),
+                    },
+
+                  // Get.to(() => InvitationListPage(eventId: id))
+                },
+            child: _buildButton(
+              "Inviter mes contacts",
+              appTheme.appViolet,
+              appTheme.appWhite,
+              Icon(
+                Icons.add_box_outlined,
+                //43, 1, 43, 100
+                color: appTheme.appWhite,
+                size: 20,
+              ),
+              inviteNew,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildBottomNavigationInviteAccept() {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildButton(
+            "Invitation acceptée",
             Colors.green.shade100,
             Colors.green.shade800,
             Icon(
@@ -594,272 +874,132 @@ Widget buildBottomNavigation(BuildContext context) {
               color: Colors.green.shade800,
               size: 20,
             ),
+            null,
           ),
-        ),
-        InkWell(
-          onTap:
-              () => {
-                // showCustomErrorDialog(
-                //   context,
-                //   "Ajouté avec succès au calendrier",
-                // ),
-              },
-          child: _buildButton(
-            "Peut être",
-            Colors.orange.shade100,
-            Colors.orange.shade800,
-            Icon(Icons.timer_outlined, color: Colors.orange.shade800, size: 20),
-          ),
-        ),
-        InkWell(
-          onTap:
-              () => {
-                showCustomErrorDialog(
-                  context,
-                  "Vous venez de refuser cette invitation",
-                ),
-              },
-          child: _buildButton(
-            "Rejeter",
-            Colors.red.shade100,
-            Colors.red.shade800,
-            Icon(Icons.cancel_sharp, color: Colors.red.shade800, size: 20),
-          ),
-        ),
-      ],
-    ),
-  );
-}
 
-Widget buildBottomNavigationInviteContact(
-  BuildContext context,
-  String id,
-  String description,
-  String ticketId,
-) {
-  void showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+          GestureDetector(
+            onTap: () {
+              Get.toNamed('/dashboard'); // Navigate to home screen
+            },
+            child: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(190, 225, 190, 231),
+                shape: BoxShape.rectangle,
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+              ),
+              child: Image.asset("assets/home_icon.png", width: 30),
+            ),
+          ),
+
+          // Create Event Button
+          GestureDetector(
+            onTap: () {
+              // Handle event creation
+              Get.toNamed('/dashboard');
+            },
+            child: Container(
+              padding: EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black,
+                border: Border.all(color: Colors.purple, width: 2),
+              ),
+              child: Icon(Icons.add, color: Colors.white, size: 34),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  return Container(
-    padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      boxShadow: [
-        BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        InkWell(
-          onTap:
-              () => {
-                // Get.toNamed(
-                //   "/inviteContact",
-                //   arguments: {
-                //     "id": id.toString(),
-                //     "description": description.toString(),
-                //   },
-                // ),
+  Widget buildBottomNavigationInviteReject() {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildButton(
+            "Invitation refusée",
+            Colors.red.shade100,
+            Colors.red.shade800,
+            Icon(Icons.cancel_outlined, color: Colors.red.shade800, size: 20),
+            null,
+          ),
 
-                Get.to(() => InvitationListPage(eventId: id, ticketId: ticketId,))
-              },
-          child: _buildButton(
-            "Invitations",
-            Colors.green.shade100,
-            Colors.green.shade800,
-            Icon(
-              Icons.featured_play_list_sharp,
-              color: Colors.green.shade800,
-              size: 20,
+          GestureDetector(
+            onTap: () {
+              Get.toNamed('/dashboard'); // Navigate to home screen
+            },
+            child: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(190, 225, 190, 231),
+                shape: BoxShape.rectangle,
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+              ),
+              child: Image.asset("assets/home_icon.png", width: 30),
             ),
           ),
-        ),
-        InkWell(
-          onTap:
-              () => {
-                // Get.toNamed(
-                //   "/inviteContact",
-                //   arguments: {
-                //     "id": id.toString(),
-                //     "description": description.toString(),
-                //   },
-                // ),
-                if (ticketId == '0')
-                  {
-                    showError(context, "Créez un ticket d'abord pour ajouter des invitations\n clickez sur ''plus de détails'' et créez un ticket")
-                  }
-                else
-                  {
-                    Get.to(
-                      () => InviteDialogExample(
-                        eventId: int.parse(id),
-                        ticketId: int.parse(ticketId),
-                      ),
-                    ),
-                  },
 
-                // Get.to(() => InvitationListPage(eventId: id))
-              },
-          child: _buildButton(
-            "Inviter mes contacts",
-            appTheme.appViolet,
-            appTheme.appWhite,
-            Icon(
-              Icons.add_box_outlined,
-              //43, 1, 43, 100
-              color: appTheme.appWhite,
-              size: 20,
+          // Create Event Button
+          GestureDetector(
+            onTap: () {
+              // Handle event creation
+              Get.toNamed('/dashboard');
+            },
+            child: Container(
+              padding: EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black,
+                border: Border.all(color: Colors.purple, width: 2),
+              ),
+              child: Icon(Icons.add, color: Colors.white, size: 34),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
-Widget buildBottomNavigationInviteAccept() {
-  return Container(
-    padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      boxShadow: [
-        BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildButton(
-          "Invitation acceptée",
-          Colors.green.shade100,
-          Colors.green.shade800,
-          Icon(
-            Icons.check_box_outlined,
-            color: Colors.green.shade800,
-            size: 20,
-          ),
-        ),
+  Widget _buildButton(
+    String text,
+    Color bgColor,
+    Color textColor,
+    Icon iconic,
+    GlobalKey? key,
+  ) {
+    return Container(
+      key: key,
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          iconic,
+          SizedBox(width: 2),
+          Text(
+            text,
 
-        GestureDetector(
-          onTap: () {
-            Get.toNamed('/dashboard'); // Navigate to home screen
-          },
-          child: Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(190, 225, 190, 231),
-              shape: BoxShape.rectangle,
-              borderRadius: BorderRadius.all(Radius.circular(10)),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: textColor,
             ),
-            child: Image.asset("assets/home_icon.png", width: 30),
           ),
-        ),
-
-        // Create Event Button
-        GestureDetector(
-          onTap: () {
-            // Handle event creation
-            Get.toNamed('/dashboard');
-          },
-          child: Container(
-            padding: EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.black,
-              border: Border.all(color: Colors.purple, width: 2),
-            ),
-            child: Icon(Icons.add, color: Colors.white, size: 34),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget buildBottomNavigationInviteReject() {
-  return Container(
-    padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      boxShadow: [
-        BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildButton(
-          "Invitation refusée",
-          Colors.red.shade100,
-          Colors.red.shade800,
-          Icon(Icons.cancel_outlined, color: Colors.red.shade800, size: 20),
-        ),
-
-        GestureDetector(
-          onTap: () {
-            Get.toNamed('/dashboard'); // Navigate to home screen
-          },
-          child: Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(190, 225, 190, 231),
-              shape: BoxShape.rectangle,
-              borderRadius: BorderRadius.all(Radius.circular(10)),
-            ),
-            child: Image.asset("assets/home_icon.png", width: 30),
-          ),
-        ),
-
-        // Create Event Button
-        GestureDetector(
-          onTap: () {
-            // Handle event creation
-            Get.toNamed('/dashboard');
-          },
-          child: Container(
-            padding: EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.black,
-              border: Border.all(color: Colors.purple, width: 2),
-            ),
-            child: Icon(Icons.add, color: Colors.white, size: 34),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildButton(String text, Color bgColor, Color textColor, Icon iconic) {
-  return Container(
-    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: bgColor,
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        iconic,
-        SizedBox(width: 2),
-        Text(
-          text,
-
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-          ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

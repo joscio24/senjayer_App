@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:senjayer/app/core/theme.dart';
-
 import '../controllers/notification_controller.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 class NotificationsPage extends StatelessWidget {
   final NotificationController _controller = Get.put(NotificationController());
 
   @override
   Widget build(BuildContext context) {
-    _controller.fetchNotifications(); // Assumes this populates the list of Map<String, dynamic>
+    _controller.fetchNotifications();
 
     return Scaffold(
       appBar: AppBar(
@@ -24,17 +24,23 @@ class NotificationsPage extends StatelessWidget {
       body: Obx(() {
         final notifications = _controller.notifications;
 
+        if (notifications.isEmpty) {
+          return Center(child: Text("Aucune notification."));
+        }
+
         return ListView.builder(
           itemCount: notifications.length,
           itemBuilder: (context, index) {
             final notification = notifications[index];
 
             return NotificationCard(
-              title: notification['title'] ?? 'No Title',
-              body: notification['body'] ?? '',
-              isRead: notification['isRead'] ?? false,
+              title: notification['title'],
+              body: notification['body'],
+              isRead: notification['isRead'],
+              createdAt: notification['created_at'],
               onTap: () {
-                // Optionally mark as read or navigate
+                // TODO: Optionally call API to mark as read
+                // or navigate based on type
               },
             );
           },
@@ -49,21 +55,29 @@ class NotificationCard extends StatelessWidget {
   final String body;
   final bool isRead;
   final VoidCallback onTap;
+  final String createdAt;
 
   const NotificationCard({
     required this.title,
     required this.body,
     required this.isRead,
+    required this.createdAt,
     required this.onTap,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final createdTime = DateTime.tryParse(createdAt);
+    final relativeTime =
+        createdTime != null
+            ? timeago.format(createdTime, locale: 'fr') // or 'en'
+            : 'il y a un moment';
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
       decoration: BoxDecoration(
-        color: isRead ? Colors.white : const Color(0xFFF0EEFF), // Purple for unread
+        color: isRead ? Colors.white : const Color(0xFFF0EEFF),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -74,23 +88,24 @@ class NotificationCard extends StatelessWidget {
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 12,
+          horizontal: 16,
+        ),
         leading: CircleAvatar(
-          backgroundColor: isRead ? appTheme.appViolet : appTheme.appSlightViolet,
+          backgroundColor:
+              isRead ? appTheme.appViolet : appTheme.appSlightViolet,
           child: const Icon(Icons.notifications, color: Colors.white, size: 20),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(body),
             const SizedBox(height: 4),
-            const Text(
-              'a few seconds ago', // Placeholder — you can format actual time if needed
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            Text(
+              relativeTime,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
